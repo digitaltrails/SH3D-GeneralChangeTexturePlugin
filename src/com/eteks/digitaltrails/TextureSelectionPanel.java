@@ -24,7 +24,10 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.geom.AffineTransform;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -34,6 +37,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionListener;
@@ -52,6 +56,8 @@ public class TextureSelectionPanel extends JPanel {
 	private final JList<CatalogTexture> choiceList;
 	private final CatalogTexture[] catalogTextures;
 
+	private final JTextField isearchField;
+
 	public TextureSelectionPanel(final String title, final List<CatalogTexture> catalogTextureList) {
 
 		setLayout(new BorderLayout());
@@ -65,10 +71,19 @@ public class TextureSelectionPanel extends JPanel {
 		choiceList.setVisibleRowCount(30);
 		choiceList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
+		final JLabel isearchLable = new JLabel(Local.str("TextureSelectionPanel.isearchLabel"));
+		isearchField = new JTextField();
+		final JPanel isearchPanel =  new JPanel(new BorderLayout());
+		isearchPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+		isearchPanel.add(isearchLable, BorderLayout.WEST);
+		isearchPanel.add(isearchField, BorderLayout.CENTER);
+		isearchField.addKeyListener(new IsearchListener());
+		
 		final JScrollPane pane = new JScrollPane(choiceList);
 
 		add(titleLable, BorderLayout.PAGE_START);
 		add(pane, BorderLayout.CENTER);
+		add(isearchPanel, BorderLayout.PAGE_END);
 	}
 
 	public void addSelectionListener(ListSelectionListener listener) {
@@ -80,8 +95,40 @@ public class TextureSelectionPanel extends JPanel {
 		return (selected == null) ? null : selected.getName();
 	}
 
+	private final class IsearchListener implements KeyListener {
 
-	public final class CatalogTextureCellRenderer extends JLabel implements ListCellRenderer<CatalogTexture> {
+		@Override
+		public void keyTyped(KeyEvent e) {
+			final String matchStr = isearchField.getText();
+			if (matchStr.length() > 0) {
+				final List<CatalogTexture> matches = new ArrayList<CatalogTexture>();
+				for (CatalogTexture ct: catalogTextures) {
+					if (ct.getName().toLowerCase().contains(matchStr.toLowerCase())) {
+						matches.add(ct);
+					}
+				}
+				choiceList.setListData(matches.toArray(new CatalogTexture[matches.size()]));
+			}
+			else {
+				choiceList.setListData(catalogTextures);
+			}
+		}
+
+		@Override
+		public void keyPressed(KeyEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void keyReleased(KeyEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
+
+	private final static class CatalogTextureCellRenderer extends JLabel implements ListCellRenderer<CatalogTexture> {
 
 		private static final long serialVersionUID = 1L;
 		private static final String INDENT = "     ..";
@@ -98,7 +145,7 @@ public class TextureSelectionPanel extends JPanel {
 			CatalogTexture entry = (CatalogTexture) value;
 
 			final String categoryName = value.getCategory() != null ? value.getCategory().getName() : INDENT;
-			final String prefix =  (index == 0 || !catalogTextures[index - 1].getCategory().getName().equals(value.getCategory().getName())) ? categoryName : INDENT;
+			final String prefix =  (index == 0 || !list.getModel().getElementAt(index - 1).getCategory().getName().equals(value.getCategory().getName())) ? categoryName : INDENT;
 
 			setText(prefix + " / " + entry.getName());
 			//setIcon(IconManager.getInstance().getIcon(entry.getIcon(), DEFAULT_ICON_HEIGHT, this));

@@ -70,12 +70,13 @@ public final class FurnitureMatcher {
 		return defaultMaterialsContainer.size() > 0 ? defaultMaterialsContainer.get(0) : null;
 	}
 
-	private boolean checkMaterials(final HomePieceOfFurniture piece, final String name) {
+	private boolean checkMaterials(final HomePieceOfFurniture piece, final String textureName) {
 
 		final HomeMaterial[] materials = piece.getModelMaterials();
 		if (materials != null) {
 			for (int i = 0; i < materials.length; i++) {
-				if (materials[i] != null && materials[i].getTexture() != null && materials[i].getTexture().getName().equals(name)) {
+				// TODO consider URL as the unique ID rather than the name.
+				if (materials[i] != null && materials[i].getTexture() != null && materials[i].getTexture().getName().equals(textureName)) {
 					if (materials[i].getShininess() != null) {
 						shininess = materials[i].getShininess();
 					}
