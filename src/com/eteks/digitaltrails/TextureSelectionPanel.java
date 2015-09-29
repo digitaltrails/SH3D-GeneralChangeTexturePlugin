@@ -152,8 +152,9 @@ public class TextureSelectionPanel extends JPanel {
 			final String prefix =  (index == 0 || !list.getModel().getElementAt(index - 1).getCategory().getName().equals(value.getCategory().getName())) ? categoryName : INDENT;
 
 			setText(prefix + " / " + entry.getName());
-			//setIcon(IconManager.getInstance().getIcon(entry.getIcon(), DEFAULT_ICON_HEIGHT, this));
-			setIcon(new TextureIcon(entry, this));
+			
+			// Make the root pane redraw when icons finish loading (might be a lot of callbacks?).
+			setIcon(new TextureIcon(entry, getRootPane()));
 			if (isSelected) {
 				setBackground(HIGHLIGHT_COLOR);
 				setForeground(Color.white);
