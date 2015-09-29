@@ -77,7 +77,32 @@ public class TextureSelectionPanel extends JPanel {
 		isearchPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
 		isearchPanel.add(isearchLable, BorderLayout.WEST);
 		isearchPanel.add(isearchField, BorderLayout.CENTER);
-		isearchField.addKeyListener(new IsearchListener());
+		
+		isearchField.addKeyListener(new KeyListener() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+			}
+			@Override
+			public void keyPressed(KeyEvent e) {
+			}
+			@Override
+			public void keyReleased(KeyEvent e) {
+				// XXX is this safe beyond UTF-8?
+				final String matchStr = isearchField.getText();
+				if (matchStr.length() > 0) {
+					final List<CatalogTexture> matches = new ArrayList<CatalogTexture>();
+					for (CatalogTexture ct: catalogTextures) {
+						if (ct.getName().toLowerCase().contains(matchStr.toLowerCase())) {
+							matches.add(ct);
+						}
+					}
+					choiceList.setListData(matches.toArray(new CatalogTexture[matches.size()]));
+				}
+				else {
+					choiceList.setListData(catalogTextures);
+				}
+			}	
+		});
 		
 		final JScrollPane pane = new JScrollPane(choiceList);
 
@@ -95,40 +120,19 @@ public class TextureSelectionPanel extends JPanel {
 		return (selected == null) ? null : selected.getName();
 	}
 
-	private final class IsearchListener implements KeyListener {
-
-		@Override
-		public void keyTyped(KeyEvent e) {
-			final String matchStr = isearchField.getText();
-			if (matchStr.length() > 0) {
-				final List<CatalogTexture> matches = new ArrayList<CatalogTexture>();
-				for (CatalogTexture ct: catalogTextures) {
-					if (ct.getName().toLowerCase().contains(matchStr.toLowerCase())) {
-						matches.add(ct);
-					}
-				}
-				choiceList.setListData(matches.toArray(new CatalogTexture[matches.size()]));
-			}
-			else {
-				choiceList.setListData(catalogTextures);
-			}
-		}
-
-		@Override
-		public void keyPressed(KeyEvent e) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void keyReleased(KeyEvent e) {
-			// TODO Auto-generated method stub
-			
-		}
-		
+	public int getFirstVisibleIndex() {
+		return choiceList.getFirstVisibleIndex();
 	}
 
-	private final static class CatalogTextureCellRenderer extends JLabel implements ListCellRenderer<CatalogTexture> {
+	public int getLastVisibleIndex() {
+		return choiceList.getLastVisibleIndex();
+	}
+
+	public void ensureIndexIsVisible(final int index) {
+		choiceList.ensureIndexIsVisible(index);	
+	}
+
+	private static final class CatalogTextureCellRenderer extends JLabel implements ListCellRenderer<CatalogTexture> {
 
 		private static final long serialVersionUID = 1L;
 		private static final String INDENT = "     ..";
@@ -173,23 +177,12 @@ public class TextureSelectionPanel extends JPanel {
 		}			  
 	}
 
-	public int getFirstVisibleIndex() {
-		return choiceList.getFirstVisibleIndex();
-	}
-
-	public int getLastVisibleIndex() {
-		return choiceList.getLastVisibleIndex();
-	}
-
-	public void ensureIndexIsVisible(final int index) {
-		choiceList.ensureIndexIsVisible(index);	
-	}
-
+	
 	/**
 	 * Icon displaying a texture.  
 	 * (copy of private inner class from com.eteks.sweethome3d.swing.TextureChoiceComponent)
 	 */
-	private static class TextureIcon implements Icon {
+	private static final class TextureIcon implements Icon {
 		static final int SIZE = 16;
 
 		private TextureImage texture;
