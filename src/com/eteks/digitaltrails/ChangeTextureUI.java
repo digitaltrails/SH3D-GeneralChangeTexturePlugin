@@ -23,7 +23,10 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -36,24 +39,62 @@ import javax.swing.event.ListSelectionListener;
 
 import com.eteks.sweethome3d.HomeFramePane;
 import com.eteks.sweethome3d.model.CatalogTexture;
+import com.eteks.sweethome3d.model.HomeMaterial;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
+import com.eteks.sweethome3d.model.HomeTexture;
+import com.eteks.sweethome3d.model.TexturesCategory;
+import com.eteks.sweethome3d.model.UserPreferences;
 
 public class ChangeTextureUI extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 
-	private final TextureChangePanel textureChangePanel;
-	
-	public ChangeTextureUI(final List<CatalogTexture> catalogTextureList, final List<HomePieceOfFurniture> furnitureList, final TextureChangeCallback listener) {		 
-		textureChangePanel = new TextureChangePanel(catalogTextureList, furnitureList, listener);
+	public ChangeTextureUI(ChangeTexturePlugin context) {
+		final List<CatalogTexture> catalogTextureList = getAllTextures(context);
+		final List<HomePieceOfFurniture> furnitureList = context.getHome().getFurniture();
+		final TextureChangePanel textureChangePanel = new TextureChangePanel(catalogTextureList, furnitureList);
 		setContentPane(textureChangePanel);
 	}
-	
-	public interface TextureChangeCallback {
-		public int invoke(final List<HomePieceOfFurniture> list, final CatalogTexture fromTexture, final CatalogTexture toTexture,  final Float shininess);
+
+	private int changeTexture(final List<HomePieceOfFurniture> list, final CatalogTexture fromTexture, final CatalogTexture toTexture, final Float shininess) {
+		int changedCount = 0;
+
+		for (HomePieceOfFurniture piece: list) {
+			// Make a new materials list copying the old one and replacing matching elements as we go
+			final HomeMaterial[] oldMaterials = piece.getModelMaterials();
+			final HomeMaterial[] materials = new HomeMaterial[oldMaterials.length];
+			for (int i = 0; i < materials.length; i++) {
+				if (oldMaterials[i] != null && oldMaterials[i].getTexture() != null && oldMaterials[i].getTexture().getName().equals(fromTexture.getName())) {
+					final HomeMaterial old = oldMaterials[i];
+					final HomeTexture newTexture = new HomeTexture(toTexture);	
+					final Float newShininess = shininess != null ? shininess : old.getShininess();
+					// TODO check old shininess really does get the old value
+					materials[i] = new HomeMaterial(old.getName(), old.getColor(), newTexture, newShininess);
+					changedCount++;
+				}
+				else {
+					materials[i] = piece.getModelMaterials()[i];
+				}
+			}
+			piece.setModelMaterials(materials);
+		}
+		return changedCount;
 	}
 	
-	public final class TextureChangePanel extends JPanel {
+	private static List<CatalogTexture> getAllTextures(ChangeTexturePlugin context) {
+		final List<CatalogTexture> choices = new ArrayList<CatalogTexture>();
+		final Map<String, CatalogTexture> catalogIds = new HashMap<String, CatalogTexture>();
+		final UserPreferences preferences = context.getUserPreferences();
+		for (TexturesCategory category : preferences.getTexturesCatalog().getCategories()) {
+			for (CatalogTexture ct : category.getTextures()) {
+				choices.add(ct);
+				catalogIds.put(ct.getId(), ct);
+			}
+		}	
+		return choices;
+	}
+	
+	private final class TextureChangePanel extends JPanel {
 		
 		private static final long serialVersionUID = 1L;
 
@@ -65,7 +106,7 @@ public class ChangeTextureUI extends JFrame {
 		private final JButton close;
 		private final JLabel status;
 		
-		public TextureChangePanel(final List<CatalogTexture> catalogTextureList, final List<HomePieceOfFurniture> furnitureList, final TextureChangeCallback callback) {
+		public TextureChangePanel(final List<CatalogTexture> catalogTextureList, final List<HomePieceOfFurniture> furnitureList) {
 			
 			setTitle("Change Furniture Textures");
 		    setIconImage(new ImageIcon(HomeFramePane.class.getResource("resources/frameIcon.png")).getImage());
@@ -75,7 +116,7 @@ public class ChangeTextureUI extends JFrame {
 		    
 			fromSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.fromTexture"), catalogTextureList);
 			toSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.toTextureTo"), catalogTextureList);
-			furnitureSelectionPanel = new FurnitureSelectionPanel();
+			furnitureSelectionPanel = new FurnitureSelectionPanel(furnitureList);
 			shininessSelectionPanel = new ShininessSelectionPanel();
 			
 			final JPanel gridThirdPanel = new JPanel(new BorderLayout());
@@ -131,7 +172,7 @@ public class ChangeTextureUI extends JFrame {
 					final CatalogTexture fromTexture = fromSelectionPanel.getSelectedTexture();
 					final CatalogTexture toTexture = toSelectionPanel.getSelectedTexture();
 					List<HomePieceOfFurniture> list = furnitureSelectionPanel.getSelectedFurniture();
-					final int changedCount = callback.invoke(list, fromTexture, toTexture, shininessSelectionPanel.getShininess());
+					final int changedCount = changeTexture(list, fromTexture, toTexture, shininessSelectionPanel.getShininess());
 					status.setText(Local.str("TextureChangePanel.modified", changedCount));
 				}
 			});

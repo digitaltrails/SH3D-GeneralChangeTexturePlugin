@@ -22,13 +22,21 @@ package com.eteks.digitaltrails;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
@@ -42,36 +50,69 @@ public class FurnitureSelectionPanel extends JPanel {
 
 	private static final Color HIGHLIGHT_COLOR = new Color(0, 0, 128);
 	
-	private final JList<HomePieceOfFurniture> pieceJList;
+	private final List<HomePieceOfFurniture> allFurnitureList;
+	
+	private final JList<HomePieceOfFurniture> listView;
 
-	public FurnitureSelectionPanel() {
+	private int popupTarget;
 
+	public FurnitureSelectionPanel(final List<HomePieceOfFurniture> allFurnitureList) {
+
+		this.allFurnitureList = allFurnitureList;
+		
 		setLayout(new BorderLayout());
 		setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 		
 		final JLabel titleLable = new JLabel(Local.str("FurnitureSelectionPanel.title"));
 
-		pieceJList = new JList<HomePieceOfFurniture>();
-		pieceJList.setVisibleRowCount(30);
-		pieceJList.setCellRenderer(new HomePieceCellRenderer());
-		pieceJList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		JScrollPane pane = new JScrollPane(pieceJList);
+		listView = new JList<HomePieceOfFurniture>();
+		listView.setVisibleRowCount(30);
+		listView.setCellRenderer(new HomePieceCellRenderer());
+		listView.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		
+		final JPopupMenu popupMenu = new JPopupMenu() {
+			private static final long serialVersionUID = 1L;
+			@Override
+			public void setVisible(boolean aFlag) {
+				final Point point = listView.getMousePosition();
+				if (point != null) {
+					popupTarget = listView.locationToIndex(point);
+				}
+				super.setVisible(aFlag);
+			}
+		};
+		
+		popupMenu.add(
+				new JMenuItem(
+						new AbstractAction("My Menu Item") {
+							private static final long serialVersionUID = 1L;
+
+							public void actionPerformed(ActionEvent e) {
+								System.out.println("lv now i=" + popupTarget);
+							}
+						}));
+		
+		listView.setComponentPopupMenu(popupMenu);
+		
+		JScrollPane pane = new JScrollPane(listView);
 		
 		add(titleLable, BorderLayout.PAGE_START);
 		add(pane, BorderLayout.CENTER);
 	}
 
+
+
 	public void update(final List<HomePieceOfFurniture> list) {
-		pieceJList.setListData(list.toArray(new HomePieceOfFurniture[list.size()]));
+		listView.setListData(list.toArray(new HomePieceOfFurniture[list.size()]));
 		final int[] indices = new int[list.size()];
 		for (int i = 0; i < list.size(); i++) {
 			indices[i] = i;
 		}
-		pieceJList.setSelectedIndices(indices);
+		listView.setSelectedIndices(indices);
 	}
 
 	public void addSelectionListener(final ListSelectionListener listener) {
-		pieceJList.addListSelectionListener(listener);
+		listView.addListSelectionListener(listener);
 	}
 	
 	public List<HomePieceOfFurniture> getSelectedFurniture() {
@@ -80,7 +121,7 @@ public class FurnitureSelectionPanel extends JPanel {
 		//final List<HomePieceOfFurniture> selected = pieceList.getSelectedValuesList();
 		//return (selected == null) ? new ArrayList<HomePieceOfFurniture>() : selected;
 		@SuppressWarnings("deprecation")
-		final Object[] objSelectedList = pieceJList.getSelectedValues();
+		final Object[] objSelectedList = listView.getSelectedValues();
 		final List<HomePieceOfFurniture> selected = new ArrayList<HomePieceOfFurniture>();
 		for (Object obj: objSelectedList) {
 			selected.add((HomePieceOfFurniture) obj);
@@ -88,7 +129,7 @@ public class FurnitureSelectionPanel extends JPanel {
 		return selected;	
 	}
 
-	public final class HomePieceCellRenderer extends JLabel implements ListCellRenderer<HomePieceOfFurniture> {
+	private final static class HomePieceCellRenderer extends JLabel implements ListCellRenderer<HomePieceOfFurniture> {
 
 		private static final long serialVersionUID = 1L;
 
@@ -113,5 +154,12 @@ public class FurnitureSelectionPanel extends JPanel {
 
 			return this;
 		}
+	}
+	
+	private static boolean isRightClick(MouseEvent e) {
+	    return (e.getButton()==MouseEvent.BUTTON3 ||
+	            (System.getProperty("os.name").contains("Mac OS X") &&
+	                    (e.getModifiers() & InputEvent.BUTTON1_MASK) != 0 &&
+	                    (e.getModifiers() & InputEvent.CTRL_MASK) != 0));
 	}
 }
