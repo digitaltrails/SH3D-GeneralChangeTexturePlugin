@@ -6,6 +6,7 @@ import java.util.List;
 import javax.media.j3d.BranchGroup;
 
 import com.eteks.sweethome3d.j3d.ModelManager;
+import com.eteks.sweethome3d.model.CatalogTexture;
 import com.eteks.sweethome3d.model.HomeFurnitureGroup;
 import com.eteks.sweethome3d.model.HomeMaterial;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
@@ -23,11 +24,13 @@ public final class FurnitureMatcher {
 		resultList = new ArrayList<HomePieceOfFurniture>();
 	}
 
-	public List<HomePieceOfFurniture> findUsing(final String textureName) {
+	public List<HomePieceOfFurniture> findUsing(final CatalogTexture catalogTexture) {
 		shininess = null;
-		for (HomePieceOfFurniture piece: inputList) {
-			traversePieces(piece, textureName);
-		}	
+		if (catalogTexture != null) {
+			for (HomePieceOfFurniture piece: inputList) {
+				traversePieces(piece, catalogTexture);
+			}	
+		}
 		return resultList;
 	}
 
@@ -39,17 +42,17 @@ public final class FurnitureMatcher {
 		return shininess;
 	}
 
-	private void traversePieces(final HomePieceOfFurniture piece, final String textureName) {
+	private void traversePieces(final HomePieceOfFurniture piece, final CatalogTexture catalogTexture) {
 		if (piece instanceof HomeFurnitureGroup) {
 			// Recurse into the group
 			HomeFurnitureGroup group = (HomeFurnitureGroup) piece;
 			for (HomePieceOfFurniture member : group.getFurniture() ) {
-				traversePieces(member, textureName);
+				traversePieces(member, catalogTexture);
 			}
 		}
 		else {
 
-			if (checkMaterials(piece, textureName)) {
+			if (checkMaterials(piece, catalogTexture)) {
 				resultList.add(piece);
 			}
 		}	
@@ -70,13 +73,13 @@ public final class FurnitureMatcher {
 		return defaultMaterialsContainer.size() > 0 ? defaultMaterialsContainer.get(0) : null;
 	}
 
-	private boolean checkMaterials(final HomePieceOfFurniture piece, final String textureName) {
+	private boolean checkMaterials(final HomePieceOfFurniture piece, final CatalogTexture catalogTexture) {
 
 		final HomeMaterial[] materials = piece.getModelMaterials();
 		if (materials != null) {
 			for (int i = 0; i < materials.length; i++) {
 				// TODO consider URL as the unique ID rather than the name.
-				if (materials[i] != null && materials[i].getTexture() != null && materials[i].getTexture().getName().equals(textureName)) {
+				if (materials[i] != null && materials[i].getTexture() != null && materials[i].getTexture().getName().equals(catalogTexture.getName())) {
 					if (materials[i].getShininess() != null) {
 						shininess = materials[i].getShininess();
 					}

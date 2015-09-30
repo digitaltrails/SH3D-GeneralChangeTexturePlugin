@@ -53,9 +53,9 @@ public class ChangeTextureAction extends PluginAction {
 		List<HomePieceOfFurniture> furnitureList = context.getHome().getFurniture();
 		userInterface = new ChangeTextureUI(choices, furnitureList, new ChangeTextureUI.TextureChangeCallback() {		
 			@Override
-			public int invoke(final List<HomePieceOfFurniture> list, final String nameOfFrom, final String nameOfTo, final Float shininess) {
-				if (nameOfFrom != null && nameOfTo != null) {
-					return changeTexture(list, nameOfFrom, nameOfTo, shininess);
+			public int invoke(final List<HomePieceOfFurniture> list, final CatalogTexture fromTexture, final CatalogTexture toTexture, final Float shininess) {
+				if (fromTexture != null && toTexture != null) {
+					return changeTexture(list, fromTexture, toTexture, shininess);
 				}
 				return 0;
 			}
@@ -79,20 +79,21 @@ public class ChangeTextureAction extends PluginAction {
 		return choices;
 	}
 
-	private CatalogTexture getCatalogTexture(final String name) {
+// TODO Remove
+//	private CatalogTexture getCatalogTexture(final String name) {
+//
+//		final UserPreferences preferences = context.getUserPreferences();
+//		for (TexturesCategory category : preferences.getTexturesCatalog().getCategories()) {
+//			for (CatalogTexture ct : category.getTextures()) {
+//				if (ct.getName().equals(name)) {
+//					return ct;
+//				}
+//			}
+//		}	
+//		return null;
+//	}
 
-		final UserPreferences preferences = context.getUserPreferences();
-		for (TexturesCategory category : preferences.getTexturesCatalog().getCategories()) {
-			for (CatalogTexture ct : category.getTextures()) {
-				if (ct.getName().equals(name)) {
-					return ct;
-				}
-			}
-		}	
-		return null;
-	}
-
-	private int changeTexture(List<HomePieceOfFurniture> list, final String from, final String to, final Float shininess) {
+	private int changeTexture(final List<HomePieceOfFurniture> list, final CatalogTexture fromTexture, final CatalogTexture toTexture, final Float shininess) {
 		int changedCount = 0;
 
 		for (HomePieceOfFurniture piece: list) {
@@ -100,9 +101,9 @@ public class ChangeTextureAction extends PluginAction {
 			final HomeMaterial[] oldMaterials = piece.getModelMaterials();
 			final HomeMaterial[] materials = new HomeMaterial[oldMaterials.length];
 			for (int i = 0; i < materials.length; i++) {
-				if (oldMaterials[i] != null && oldMaterials[i].getTexture() != null && oldMaterials[i].getTexture().getName().equals(from)) {
+				if (oldMaterials[i] != null && oldMaterials[i].getTexture() != null && oldMaterials[i].getTexture().getName().equals(fromTexture.getName())) {
 					final HomeMaterial old = oldMaterials[i];
-					final HomeTexture newTexture = new HomeTexture(getCatalogTexture(to));	
+					final HomeTexture newTexture = new HomeTexture(toTexture);	
 					final Float newShininess = shininess != null ? shininess : old.getShininess();
 					// TODO check old shininess really does get the old value
 					materials[i] = new HomeMaterial(old.getName(), old.getColor(), newTexture, newShininess);

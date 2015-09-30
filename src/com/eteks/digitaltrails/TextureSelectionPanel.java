@@ -115,9 +115,9 @@ public class TextureSelectionPanel extends JPanel {
 		choiceList.addListSelectionListener(listener);
 	}
 
-	public String getSelectedTextureName() {
+	public CatalogTexture getSelectedTexture() {
 		final CatalogTexture selected = choiceList.getSelectedValue();
-		return (selected == null) ? null : selected.getName();
+		return selected;
 	}
 
 	public int getFirstVisibleIndex() {

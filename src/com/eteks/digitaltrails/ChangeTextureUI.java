@@ -50,7 +50,7 @@ public class ChangeTextureUI extends JFrame {
 	}
 	
 	public interface TextureChangeCallback {
-		public int invoke(final List<HomePieceOfFurniture> list, final String nameOfFrom, final String nameOfTo,  final Float shininess);
+		public int invoke(final List<HomePieceOfFurniture> list, final CatalogTexture fromTexture, final CatalogTexture toTexture,  final Float shininess);
 	}
 	
 	public final class TextureChangePanel extends JPanel {
@@ -109,7 +109,7 @@ public class ChangeTextureUI extends JFrame {
 					toSelectionPanel.ensureIndexIsVisible(topIndex);
 					toSelectionPanel.ensureIndexIsVisible(bottomIndex);
 					final FurnitureMatcher matcher = new FurnitureMatcher(furnitureList);
-					final List<HomePieceOfFurniture> references = matcher.findUsing(fromSelectionPanel.getSelectedTextureName());
+					final List<HomePieceOfFurniture> references = matcher.findUsing(fromSelectionPanel.getSelectedTexture());
 					final Float shininess = matcher.getShininess();
 					furnitureSelectionPanel.update(references);
 					shininessSelectionPanel.update(shininess);
@@ -128,10 +128,10 @@ public class ChangeTextureUI extends JFrame {
 				
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					final String nameOfFrom = fromSelectionPanel.getSelectedTextureName();
-					final String nameOfTo = toSelectionPanel.getSelectedTextureName();
+					final CatalogTexture fromTexture = fromSelectionPanel.getSelectedTexture();
+					final CatalogTexture toTexture = toSelectionPanel.getSelectedTexture();
 					List<HomePieceOfFurniture> list = furnitureSelectionPanel.getSelectedFurniture();
-					final int changedCount = callback.invoke(list, nameOfFrom, nameOfTo, shininessSelectionPanel.getShininess());
+					final int changedCount = callback.invoke(list, fromTexture, toTexture, shininessSelectionPanel.getShininess());
 					status.setText(Local.str("TextureChangePanel.modified", changedCount));
 				}
 			});
