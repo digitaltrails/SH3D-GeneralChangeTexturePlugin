@@ -24,9 +24,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +43,12 @@ import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 
 public class FurnitureSelectionPanel extends JPanel {
 
+	public static final String INSPECT_ACTION = "Inspect";
+
+	public interface FurnitureSelectionAction {
+		public void actionPerformed(final String actionName, final List<HomePieceOfFurniture> list);
+	}
+
 	private static final long serialVersionUID = 1L;
 
 	private static final Color HIGHLIGHT_COLOR = new Color(0, 0, 128);
@@ -53,12 +56,15 @@ public class FurnitureSelectionPanel extends JPanel {
 	private final List<HomePieceOfFurniture> allFurnitureList;
 	
 	private final JList<HomePieceOfFurniture> listView;
+	
+	private final FurnitureSelectionAction fsAction;
 
 	private int popupTarget;
 
-	public FurnitureSelectionPanel(final List<HomePieceOfFurniture> allFurnitureList) {
+	public FurnitureSelectionPanel(final List<HomePieceOfFurniture> allFurnitureList, final FurnitureSelectionAction action) {
 
 		this.allFurnitureList = allFurnitureList;
+		this.fsAction = action;
 		
 		setLayout(new BorderLayout());
 		setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -84,11 +90,19 @@ public class FurnitureSelectionPanel extends JPanel {
 		
 		popupMenu.add(
 				new JMenuItem(
-						new AbstractAction("My Menu Item") {
+						new AbstractAction("Examine item") {
 							private static final long serialVersionUID = 1L;
 
 							public void actionPerformed(ActionEvent e) {
 								System.out.println("lv now i=" + popupTarget);
+								if (popupTarget < listView.getModel().getSize()) {
+									final List<HomePieceOfFurniture> selected = new ArrayList<HomePieceOfFurniture>();
+									selected.add(listView.getModel().getElementAt(popupTarget));
+									fsAction.actionPerformed(INSPECT_ACTION, selected);
+								}
+								else {
+									// TODO what?
+								}
 							}
 						}));
 		
@@ -100,9 +114,7 @@ public class FurnitureSelectionPanel extends JPanel {
 		add(pane, BorderLayout.CENTER);
 	}
 
-
-
-	public void update(final List<HomePieceOfFurniture> list) {
+	public void setChoices(final List<HomePieceOfFurniture> list) {
 		listView.setListData(list.toArray(new HomePieceOfFurniture[list.size()]));
 		final int[] indices = new int[list.size()];
 		for (int i = 0; i < list.size(); i++) {
@@ -156,10 +168,10 @@ public class FurnitureSelectionPanel extends JPanel {
 		}
 	}
 	
-	private static boolean isRightClick(MouseEvent e) {
-	    return (e.getButton()==MouseEvent.BUTTON3 ||
-	            (System.getProperty("os.name").contains("Mac OS X") &&
-	                    (e.getModifiers() & InputEvent.BUTTON1_MASK) != 0 &&
-	                    (e.getModifiers() & InputEvent.CTRL_MASK) != 0));
-	}
+//	private static boolean isRightClick(MouseEvent e) {
+//	    return (e.getButton()==MouseEvent.BUTTON3 ||
+//	            (System.getProperty("os.name").contains("Mac OS X") &&
+//	                    (e.getModifiers() & InputEvent.BUTTON1_MASK) != 0 &&
+//	                    (e.getModifiers() & InputEvent.CTRL_MASK) != 0));
+//	}
 }

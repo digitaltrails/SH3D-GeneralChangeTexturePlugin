@@ -53,7 +53,7 @@ public class TextureSelectionPanel extends JPanel {
 
 	private static final Color HIGHLIGHT_COLOR = new Color(0, 0, 128);
 
-	private final JList<CatalogTexture> choiceList;
+	private final JList<CatalogTexture> choiceView;
 	private final CatalogTexture[] catalogTextures;
 
 	private final JTextField isearchField;
@@ -66,10 +66,10 @@ public class TextureSelectionPanel extends JPanel {
 		final JLabel titleLable = new JLabel(title);
 
 		catalogTextures = catalogTextureList.toArray(new CatalogTexture[catalogTextureList.size()]);
-		choiceList = new JList<CatalogTexture>(catalogTextures);
-		choiceList.setCellRenderer(new CatalogTextureCellRenderer());
-		choiceList.setVisibleRowCount(30);
-		choiceList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		choiceView = new JList<CatalogTexture>(catalogTextures);
+		choiceView.setCellRenderer(new CatalogTextureCellRenderer());
+		choiceView.setVisibleRowCount(30);
+		choiceView.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
 		final JLabel isearchLable = new JLabel(Local.str("TextureSelectionPanel.isearchLabel"));
 		isearchField = new JTextField();
@@ -96,15 +96,15 @@ public class TextureSelectionPanel extends JPanel {
 							matches.add(ct);
 						}
 					}
-					choiceList.setListData(matches.toArray(new CatalogTexture[matches.size()]));
+					choiceView.setListData(matches.toArray(new CatalogTexture[matches.size()]));
 				}
 				else {
-					choiceList.setListData(catalogTextures);
+					choiceView.setListData(catalogTextures);
 				}
 			}	
 		});
 		
-		final JScrollPane pane = new JScrollPane(choiceList);
+		final JScrollPane pane = new JScrollPane(choiceView);
 
 		add(titleLable, BorderLayout.PAGE_START);
 		add(pane, BorderLayout.CENTER);
@@ -112,26 +112,30 @@ public class TextureSelectionPanel extends JPanel {
 	}
 
 	public void addSelectionListener(ListSelectionListener listener) {
-		choiceList.addListSelectionListener(listener);
+		choiceView.addListSelectionListener(listener);
 	}
 
 	public CatalogTexture getSelectedTexture() {
-		final CatalogTexture selected = choiceList.getSelectedValue();
+		final CatalogTexture selected = choiceView.getSelectedValue();
 		return selected;
 	}
 
 	public int getFirstVisibleIndex() {
-		return choiceList.getFirstVisibleIndex();
+		return choiceView.getFirstVisibleIndex();
 	}
 
 	public int getLastVisibleIndex() {
-		return choiceList.getLastVisibleIndex();
+		return choiceView.getLastVisibleIndex();
 	}
 
 	public void ensureIndexIsVisible(final int index) {
-		choiceList.ensureIndexIsVisible(index);	
+		choiceView.ensureIndexIsVisible(index);	
 	}
 
+	public void setChoices(final List<CatalogTexture> choices) {
+		choiceView.setListData(choices.toArray(new CatalogTexture[choices.size()]));
+	}
+	
 	private static final class CatalogTextureCellRenderer extends JLabel implements ListCellRenderer<CatalogTexture> {
 
 		private static final long serialVersionUID = 1L;

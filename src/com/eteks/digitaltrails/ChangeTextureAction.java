@@ -19,17 +19,6 @@
  */
 package com.eteks.digitaltrails;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.eteks.sweethome3d.model.CatalogTexture;
-import com.eteks.sweethome3d.model.HomeMaterial;
-import com.eteks.sweethome3d.model.HomePieceOfFurniture;
-import com.eteks.sweethome3d.model.HomeTexture;
-import com.eteks.sweethome3d.model.TexturesCategory;
-import com.eteks.sweethome3d.model.UserPreferences;
 import com.eteks.sweethome3d.plugin.PluginAction;
 
 
@@ -48,15 +37,8 @@ public class ChangeTextureAction extends PluginAction {
 
 	@Override
 	public void execute() {
-
-
 		userInterface = new ChangeTextureUI(context);
-
 		userInterface.pack();
 		userInterface.setVisible(true);
 	}
-
-
-
-
 }
