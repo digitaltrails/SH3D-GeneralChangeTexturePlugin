@@ -33,6 +33,7 @@ import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
@@ -63,17 +64,41 @@ public class TextureChangePanel extends JPanel {
 	    
 		fromSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.fromTexture"), catalogTextureList);
 		toSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.toTextureTo"), catalogTextureList);
-		furnitureSelectionPanel = new FurnitureSelectionPanel(furnitureList, new FurnitureSelectionPanel.FurnitureSelectionAction() {			
-			@Override
-			public void actionPerformed(final String actionName, final List<HomePieceOfFurniture> list) {
-				if (actionName.equals(FurnitureSelectionPanel.INSPECT_ACTION)) {
-					final List<CatalogTexture> matches = findCatalogTextures(list, catalogTextureList);
-					fromSelectionPanel.setChoices(matches);
-					furnitureSelectionPanel.setChoices(list);
-				}
-				
-			}
-		});
+		furnitureSelectionPanel = new FurnitureSelectionPanel();
+		
+		furnitureSelectionPanel.addPopupAction(
+				"FindTextures", 
+				Local.str("FurnitureSelectionPanel.popup.findTexturesLabel"), 
+				new FurnitureSelectionPanel.FurnitureSelectionAction() {			
+					@Override
+					public void actionPerformed(final String actionName, final HomePieceOfFurniture list) {
+						final List<HomePieceOfFurniture> selectedFurniture = furnitureSelectionPanel.getSelectedFurniture();
+						if (selectedFurniture.isEmpty()) {
+							JOptionPane.showMessageDialog(furnitureSelectionPanel, Local.str("FurnitureSelectionPanel.popup.noFurnitureSelectedMessage"));
+						}
+						else {
+							final List<CatalogTexture> matches = findCatalogTextures(selectedFurniture, catalogTextureList);
+							fromSelectionPanel.setChoices(matches);
+							furnitureSelectionPanel.setChoices(selectedFurniture);
+						}
+					}
+				});
+
+		furnitureSelectionPanel.addPopupAction(
+				"ShowAll", 
+				Local.str("FurnitureSelectionPanel.popup.showAllLabel"), 
+				new FurnitureSelectionPanel.FurnitureSelectionAction() {			
+					@Override
+					public void actionPerformed(final String actionName, final HomePieceOfFurniture list) {
+						if (furnitureList.isEmpty()) {
+							JOptionPane.showMessageDialog(furnitureSelectionPanel, Local.str("FurnitureSelectionPanel.popup.noFurnitureMessage"));							
+						}
+						else {
+							furnitureSelectionPanel.setChoices(furnitureList);
+						}
+					}
+				});
+
 		
 		shininessSelectionPanel = new ShininessSelectionPanel();
 		

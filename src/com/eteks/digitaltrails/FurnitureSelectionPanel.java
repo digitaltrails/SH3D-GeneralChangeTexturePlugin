@@ -43,28 +43,21 @@ import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 
 public class FurnitureSelectionPanel extends JPanel {
 
-	public static final String INSPECT_ACTION = "Inspect";
-
 	public interface FurnitureSelectionAction {
-		public void actionPerformed(final String actionName, final List<HomePieceOfFurniture> list);
+		public void actionPerformed(final String actionName, final HomePieceOfFurniture actionTarget);
 	}
 
 	private static final long serialVersionUID = 1L;
 
 	private static final Color HIGHLIGHT_COLOR = new Color(0, 0, 128);
 	
-	private final List<HomePieceOfFurniture> allFurnitureList;
-	
 	private final JList<HomePieceOfFurniture> listView;
+
+	private final JPopupMenu popupMenu;
 	
-	private final FurnitureSelectionAction fsAction;
+	private HomePieceOfFurniture popupTarget = null;
 
-	private int popupTarget;
-
-	public FurnitureSelectionPanel(final List<HomePieceOfFurniture> allFurnitureList, final FurnitureSelectionAction action) {
-
-		this.allFurnitureList = allFurnitureList;
-		this.fsAction = action;
+	public FurnitureSelectionPanel() {
 		
 		setLayout(new BorderLayout());
 		setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -76,35 +69,21 @@ public class FurnitureSelectionPanel extends JPanel {
 		listView.setCellRenderer(new HomePieceCellRenderer());
 		listView.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		
-		final JPopupMenu popupMenu = new JPopupMenu() {
+		popupMenu = new JPopupMenu() {
 			private static final long serialVersionUID = 1L;
 			@Override
 			public void setVisible(boolean aFlag) {
+				// Remember where the mouse was when the menu was popped up.
 				final Point point = listView.getMousePosition();
 				if (point != null) {
-					popupTarget = listView.locationToIndex(point);
+					final int popupIndex = listView.locationToIndex(point);
+					if (listView.getModel() != null && popupIndex >= 0 && popupIndex < listView.getModel().getSize()) {
+						popupTarget = listView.getModel().getElementAt(popupIndex);
+					}
 				}
 				super.setVisible(aFlag);
 			}
 		};
-		
-		popupMenu.add(
-				new JMenuItem(
-						new AbstractAction("Examine item") {
-							private static final long serialVersionUID = 1L;
-
-							public void actionPerformed(ActionEvent e) {
-								System.out.println("lv now i=" + popupTarget);
-								if (popupTarget < listView.getModel().getSize()) {
-									final List<HomePieceOfFurniture> selected = new ArrayList<HomePieceOfFurniture>();
-									selected.add(listView.getModel().getElementAt(popupTarget));
-									fsAction.actionPerformed(INSPECT_ACTION, selected);
-								}
-								else {
-									// TODO what?
-								}
-							}
-						}));
 		
 		listView.setComponentPopupMenu(popupMenu);
 		
@@ -112,6 +91,17 @@ public class FurnitureSelectionPanel extends JPanel {
 		
 		add(titleLable, BorderLayout.PAGE_START);
 		add(pane, BorderLayout.CENTER);
+	}
+
+	public void addPopupAction(final String actionKey, final String label, final FurnitureSelectionAction action) {
+		popupMenu.add(
+				new JMenuItem(
+						new AbstractAction(label) {
+							private static final long serialVersionUID = 1L;
+							public void actionPerformed(ActionEvent e) {
+								action.actionPerformed(actionKey, popupTarget);			
+							}
+						}));
 	}
 
 	public void setChoices(final List<HomePieceOfFurniture> list) {
