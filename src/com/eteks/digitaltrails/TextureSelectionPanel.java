@@ -24,18 +24,23 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
@@ -48,16 +53,26 @@ import com.eteks.sweethome3d.swing.IconManager;
 import com.eteks.sweethome3d.tools.URLContent;
 
 public class TextureSelectionPanel extends JPanel {
+	
+	public interface TextureSelectionAction {
+		public void actionPerformed(final String actionName, final CatalogTexture actionTarget);
+	}
 
 	private static final long serialVersionUID = 1L;
 
 	private static final Color HIGHLIGHT_COLOR = new Color(0, 0, 128);
 
-	private final JList<CatalogTexture> choiceView;
-	private final CatalogTexture[] catalogTextures;
+	private final JList<CatalogTexture> listView;
+	;
 
 	private final JTextField isearchField;
 
+	private final JPopupMenu popupMenu;
+	
+	private List<CatalogTexture> listData = new ArrayList<CatalogTexture>();
+	
+	private CatalogTexture popupTarget;
+	
 	public TextureSelectionPanel(final String title, final List<CatalogTexture> catalogTextureList) {
 
 		setLayout(new BorderLayout());
@@ -65,12 +80,30 @@ public class TextureSelectionPanel extends JPanel {
 		
 		final JLabel titleLable = new JLabel(title);
 
-		catalogTextures = catalogTextureList.toArray(new CatalogTexture[catalogTextureList.size()]);
-		choiceView = new JList<CatalogTexture>(catalogTextures);
-		choiceView.setCellRenderer(new CatalogTextureCellRenderer());
-		choiceView.setVisibleRowCount(30);
-		choiceView.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		listView = new JList<CatalogTexture>();
+		listView.setCellRenderer(new CatalogTextureCellRenderer());
+		listView.setVisibleRowCount(30);
+		listView.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		setListDataOnly(catalogTextureList);
 
+		popupMenu = new JPopupMenu() {
+			private static final long serialVersionUID = 1L;
+			@Override
+			public void setVisible(boolean aFlag) {
+				// Remember where the mouse was when the menu was popped up.
+				final Point point = listView.getMousePosition();
+				if (point != null) {
+					final int popupIndex = listView.locationToIndex(point);
+					if (listView.getModel() != null && popupIndex >= 0 && popupIndex < listView.getModel().getSize()) {
+						popupTarget = listView.getModel().getElementAt(popupIndex);
+					}
+				}
+				super.setVisible(aFlag);
+			}
+		};
+		
+		listView.setComponentPopupMenu(popupMenu);
+		
 		final JLabel isearchLable = new JLabel(Local.str("TextureSelectionPanel.isearchLabel"));
 		isearchField = new JTextField();
 		final JPanel isearchPanel =  new JPanel(new BorderLayout());
@@ -79,6 +112,7 @@ public class TextureSelectionPanel extends JPanel {
 		isearchPanel.add(isearchField, BorderLayout.CENTER);
 		
 		isearchField.addKeyListener(new KeyListener() {
+						
 			@Override
 			public void keyTyped(KeyEvent e) {
 			}
@@ -91,20 +125,20 @@ public class TextureSelectionPanel extends JPanel {
 				final String matchStr = isearchField.getText();
 				if (matchStr.length() > 0) {
 					final List<CatalogTexture> matches = new ArrayList<CatalogTexture>();
-					for (CatalogTexture ct: catalogTextures) {
+					for (CatalogTexture ct: catalogTextureList) {
 						if (ct.getName().toLowerCase().contains(matchStr.toLowerCase())) {
 							matches.add(ct);
 						}
 					}
-					choiceView.setListData(matches.toArray(new CatalogTexture[matches.size()]));
+					setListDataOnly(matches);
 				}
 				else {
-					choiceView.setListData(catalogTextures);
+					setListDataOnly(catalogTextureList);
 				}
 			}	
 		});
 		
-		final JScrollPane pane = new JScrollPane(choiceView);
+		final JScrollPane pane = new JScrollPane(listView);
 
 		add(titleLable, BorderLayout.PAGE_START);
 		add(pane, BorderLayout.CENTER);
@@ -112,29 +146,75 @@ public class TextureSelectionPanel extends JPanel {
 	}
 
 	public void addSelectionListener(ListSelectionListener listener) {
-		choiceView.addListSelectionListener(listener);
+		listView.addListSelectionListener(listener);
 	}
 
 	public CatalogTexture getSelectedTexture() {
-		final CatalogTexture selected = choiceView.getSelectedValue();
+		final CatalogTexture selected = listView.getSelectedValue();
 		return selected;
 	}
 
 	public int getFirstVisibleIndex() {
-		return choiceView.getFirstVisibleIndex();
+		return listView.getFirstVisibleIndex();
 	}
 
 	public int getLastVisibleIndex() {
-		return choiceView.getLastVisibleIndex();
+		return listView.getLastVisibleIndex();
 	}
 
 	public void ensureIndexIsVisible(final int index) {
-		choiceView.ensureIndexIsVisible(index);	
+		listView.ensureIndexIsVisible(index);	
 	}
 
-	public void setChoices(final List<CatalogTexture> choices) {
-		choiceView.setListData(choices.toArray(new CatalogTexture[choices.size()]));
+	public void setListData(final List<CatalogTexture> choices) {
+		setListDataOnly(choices);
+		isearchField.setText("");
 	}
+	
+	private void setListDataOnly(final List<CatalogTexture> choices) {
+		listData = choices;
+		listView.setListData(listData.toArray(new CatalogTexture[listData.size()]));
+	}
+	
+	public void ensureIsVisible(final int first, final int last, final String name) {
+		final int pos = indexOf(name);
+		if (pos < 0) {
+			return;
+		}
+		if (first <= pos && pos <= last) {
+			listView.ensureIndexIsVisible(first);
+			listView.ensureIndexIsVisible(last);
+			return;
+		}
+		int v = listView.getVisibleRowCount();
+		int top = pos - v > 0 ? pos - v : 0;
+		int bottom = pos + v < listData.size() ? pos + v : listData.size() - 1;
+		listView.ensureIndexIsVisible(top);
+		listView.ensureIndexIsVisible(bottom);
+	}
+	
+	public int indexOf(final String name) {
+		int i = 0;
+		for (CatalogTexture piece: listData) {
+			if (piece.getName().equals(name)) {
+				return i;
+			}
+			i++;
+		};
+		return -1;
+	}
+	
+	public void addPopupAction(final String actionKey, final String label, final TextureSelectionAction action) {
+		popupMenu.add(
+				new JMenuItem(
+						new AbstractAction(label) {
+							private static final long serialVersionUID = 1L;
+							public void actionPerformed(ActionEvent e) {
+								action.actionPerformed(actionKey, popupTarget);			
+							}
+						}));
+	}
+
 	
 	private static final class CatalogTextureCellRenderer extends JLabel implements ListCellRenderer<CatalogTexture> {
 

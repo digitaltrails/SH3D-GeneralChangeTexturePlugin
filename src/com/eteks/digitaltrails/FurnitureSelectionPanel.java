@@ -56,6 +56,8 @@ public class FurnitureSelectionPanel extends JPanel {
 	private final JPopupMenu popupMenu;
 	
 	private HomePieceOfFurniture popupTarget = null;
+	
+	private List<HomePieceOfFurniture> listData;
 
 	public FurnitureSelectionPanel() {
 		
@@ -104,13 +106,24 @@ public class FurnitureSelectionPanel extends JPanel {
 						}));
 	}
 
-	public void setChoices(final List<HomePieceOfFurniture> list) {
+	public void setListData(final List<HomePieceOfFurniture> list) {
+		listData = list;
 		listView.setListData(list.toArray(new HomePieceOfFurniture[list.size()]));
-		final int[] indices = new int[list.size()];
-		for (int i = 0; i < list.size(); i++) {
-			indices[i] = i;
-		}
-		listView.setSelectedIndices(indices);
+	}
+	
+	public void selectAll() {
+		listView.setSelectionInterval(0, listView.getModel().getSize() - 1);
+	}
+
+	public int indexOf(final String name) {
+		int i = 0;
+		for (HomePieceOfFurniture piece: listData) {
+			if (piece.getName().equals(name)) {
+				return i;
+			}
+			i++;
+		};
+		return -1;
 	}
 
 	public void addSelectionListener(final ListSelectionListener listener) {
@@ -118,7 +131,10 @@ public class FurnitureSelectionPanel extends JPanel {
 	}
 	
 	public List<HomePieceOfFurniture> getSelectedFurniture() {
-		
+
+		if (listView.isSelectionEmpty()) {
+			return new ArrayList<HomePieceOfFurniture>();
+		}
 		// JDK 1.7
 		//final List<HomePieceOfFurniture> selected = pieceList.getSelectedValuesList();
 		//return (selected == null) ? new ArrayList<HomePieceOfFurniture>() : selected;

@@ -46,7 +46,7 @@ import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.HomeTexture;
 
 public class TextureChangePanel extends JPanel {
-	
+
 	private static final long serialVersionUID = 1L;
 
 	private final TextureSelectionPanel fromSelectionPanel;
@@ -56,31 +56,26 @@ public class TextureChangePanel extends JPanel {
 	private final JButton ok;
 	private final JButton close;
 	private final JLabel status;
-	
+
+	private boolean handling = false;
+
 	public TextureChangePanel(final List<CatalogTexture> catalogTextureList, final List<HomePieceOfFurniture> furnitureList) {
-			
-	    setLayout(new BorderLayout());
-	    setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-	    
+
+		setLayout(new BorderLayout());
+		setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
 		fromSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.fromTexture"), catalogTextureList);
 		toSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.toTextureTo"), catalogTextureList);
 		furnitureSelectionPanel = new FurnitureSelectionPanel();
-		
-		furnitureSelectionPanel.addPopupAction(
-				"FindTextures", 
-				Local.str("FurnitureSelectionPanel.popup.findTexturesLabel"), 
-				new FurnitureSelectionPanel.FurnitureSelectionAction() {			
+
+		fromSelectionPanel.addPopupAction(
+				"ShowAll", 
+				Local.str("TextureSelectionPanel.popup.showAllLabel"), 
+				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
-					public void actionPerformed(final String actionName, final HomePieceOfFurniture list) {
-						final List<HomePieceOfFurniture> selectedFurniture = furnitureSelectionPanel.getSelectedFurniture();
-						if (selectedFurniture.isEmpty()) {
-							JOptionPane.showMessageDialog(furnitureSelectionPanel, Local.str("FurnitureSelectionPanel.popup.noFurnitureSelectedMessage"));
-						}
-						else {
-							final List<CatalogTexture> matches = findCatalogTextures(selectedFurniture, catalogTextureList);
-							fromSelectionPanel.setChoices(matches);
-							furnitureSelectionPanel.setChoices(selectedFurniture);
-						}
+					public void actionPerformed(final String actionName, final CatalogTexture list) {					
+						fromSelectionPanel.setListData(catalogTextureList);
+						furnitureSelectionPanel.setListData(new ArrayList<HomePieceOfFurniture>());
 					}
 				});
 
@@ -94,14 +89,14 @@ public class TextureChangePanel extends JPanel {
 							JOptionPane.showMessageDialog(furnitureSelectionPanel, Local.str("FurnitureSelectionPanel.popup.noFurnitureMessage"));							
 						}
 						else {
-							furnitureSelectionPanel.setChoices(furnitureList);
+							furnitureSelectionPanel.setListData(furnitureList);
 						}
 					}
 				});
 
-		
+
 		shininessSelectionPanel = new ShininessSelectionPanel();
-		
+
 		final JPanel gridThirdPanel = new JPanel(new BorderLayout());
 		gridThirdPanel.add(furnitureSelectionPanel, BorderLayout.CENTER);
 		gridThirdPanel.add(shininessSelectionPanel, BorderLayout.PAGE_END);
@@ -110,7 +105,7 @@ public class TextureChangePanel extends JPanel {
 		middlePanel.add(fromSelectionPanel);
 		middlePanel.add(toSelectionPanel);
 		middlePanel.add(gridThirdPanel);
-		
+
 		add(middlePanel, BorderLayout.CENTER);
 
 		final JPanel bottomPanel = new JPanel();
@@ -122,35 +117,75 @@ public class TextureChangePanel extends JPanel {
 		bottomPanel.add(ok);
 		bottomPanel.add(close);
 		bottomPanel.add(status);
-		
+
 		add(bottomPanel, BorderLayout.PAGE_END);
-		
+
 		fromSelectionPanel.addSelectionListener(new ListSelectionListener() {				
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
-				// Scroll the second panel to the same textures.
-				final int topIndex = fromSelectionPanel.getFirstVisibleIndex();
-				final int bottomIndex = fromSelectionPanel.getLastVisibleIndex();
-				toSelectionPanel.ensureIndexIsVisible(topIndex);
-				toSelectionPanel.ensureIndexIsVisible(bottomIndex);
-				final FurnitureMatcher matcher = new FurnitureMatcher(furnitureList);
-				final List<HomePieceOfFurniture> references = matcher.findUsing(fromSelectionPanel.getSelectedTexture());
-				final Float shininess = matcher.getShininess();
-				furnitureSelectionPanel.setChoices(references);
-				shininessSelectionPanel.update(shininess);
-				status.setText(Local.str("TextureChangePanel.selected", references.size()));
+				if (!handling) {
+					try {
+						handling = true;
+
+						// Scroll the second panel to the same textures.
+						final int count;
+						final CatalogTexture selectedTexture = fromSelectionPanel.getSelectedTexture();
+						if (selectedTexture != null) {
+
+							// Scroll the second panel to the same textures.
+							toSelectionPanel.ensureIsVisible(fromSelectionPanel.getFirstVisibleIndex(), fromSelectionPanel.getLastVisibleIndex(), selectedTexture.getName());
+
+							// Show referenced furniture
+							final FurnitureMatcher matcher = new FurnitureMatcher(furnitureList);
+							final List<HomePieceOfFurniture> references = matcher.findUsing(selectedTexture);
+							final Float shininess = matcher.getShininess();
+							furnitureSelectionPanel.setListData(references);
+							furnitureSelectionPanel.selectAll();
+							if (!references.isEmpty()) {
+								shininessSelectionPanel.update(shininess);
+							}
+							count = references.size();
+						}
+						else {
+							furnitureSelectionPanel.setListData(new ArrayList<HomePieceOfFurniture>());
+							count = 0;
+						}
+						status.setText(Local.str("TextureChangePanel.furnitureSelectedCount", count));
+					}
+					finally {
+						handling = false;
+					} 
+				}
 			}
 		});
-		
+
+
 		furnitureSelectionPanel.addSelectionListener(new ListSelectionListener() {				
 			@Override
-			public void valueChanged(ListSelectionEvent e) {				
-				status.setText(Local.str("TextureChangePanel.selected", furnitureSelectionPanel.getSelectedFurniture().size()));
-			}
-		});
-		
+			public void valueChanged(ListSelectionEvent e) {	
+				if (!handling) {
+					try {
+						handling = true;
+
+						status.setText(Local.str("TextureChangePanel.furnitureSelectedCount", furnitureSelectionPanel.getSelectedFurniture().size()));
+						final List<HomePieceOfFurniture> selectedFurniture = furnitureSelectionPanel.getSelectedFurniture();
+						if (selectedFurniture.isEmpty()) {
+							fromSelectionPanel.setListData(catalogTextureList);
+						}
+						else {
+							final List<CatalogTexture> matches = findCatalogTextures(selectedFurniture, catalogTextureList);
+							fromSelectionPanel.setListData(matches);
+							//furnitureSelectionPanel.setChoices(selectedFurniture);
+						}
+					}
+					finally {
+						handling = false;
+					} 
+				}
+			}});
+
 		ok.addActionListener(new ActionListener() {
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				final CatalogTexture fromTexture = fromSelectionPanel.getSelectedTexture();
@@ -160,17 +195,17 @@ public class TextureChangePanel extends JPanel {
 				status.setText(Local.str("TextureChangePanel.modified", changedCount));
 			}
 		});
-		
+
 		close.addActionListener(new ActionListener() {
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				 Component comp = SwingUtilities.getRoot(TextureChangePanel.this);
-				 ((Window) comp).dispose();
+				Component comp = SwingUtilities.getRoot(TextureChangePanel.this);
+				((Window) comp).dispose();
 			}
 		});
 	}
-	
+
 	private int changeTexture(final List<HomePieceOfFurniture> furnitureList, final CatalogTexture fromTexture, final CatalogTexture toTexture, final Float shininess) {
 		int changedCount = 0;
 
@@ -196,16 +231,16 @@ public class TextureChangePanel extends JPanel {
 		return changedCount;
 	}
 
-	
+
 	private List<CatalogTexture> findCatalogTextures(final List<HomePieceOfFurniture> furnitureList, final List<CatalogTexture> fullCatalogTextureList) {
 		final Set<String> index = new HashSet<String>();
-		
+
 		for (HomePieceOfFurniture piece: furnitureList) {
 			traversePieces(piece, index);
 		}
-		
+
 		final List<CatalogTexture> results = new ArrayList<CatalogTexture>();
-		
+
 		for (CatalogTexture possible: fullCatalogTextureList) {
 			if (index.contains(possible.getName())) {
 				results.add(possible);
