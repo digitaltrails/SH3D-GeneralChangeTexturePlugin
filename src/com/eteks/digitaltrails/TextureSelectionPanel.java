@@ -167,7 +167,13 @@ public class TextureSelectionPanel extends JPanel {
 	}
 
 	public void setListData(final List<CatalogTexture> choices) {
+		final CatalogTexture oldSelected = listView.getSelectedValue();
 		setListDataOnly(choices);
+		for (CatalogTexture choice: choices) {
+			if (choice == oldSelected) { // Pointers the same
+				listView.setSelectedValue(choice, false);
+			}
+		}		
 		isearchField.setText("");
 	}
 	

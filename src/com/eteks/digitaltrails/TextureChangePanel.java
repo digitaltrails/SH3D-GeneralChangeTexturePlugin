@@ -89,7 +89,9 @@ public class TextureChangePanel extends JPanel {
 							JOptionPane.showMessageDialog(furnitureSelectionPanel, Local.str("FurnitureSelectionPanel.popup.noFurnitureMessage"));							
 						}
 						else {
-							furnitureSelectionPanel.setListData(furnitureList);
+							final FurnitureMatcher matcher = new FurnitureMatcher(furnitureList);
+							final List<HomePieceOfFurniture> references = matcher.findUsing(null);
+							furnitureSelectionPanel.setListData(references);
 						}
 					}
 				});
@@ -207,8 +209,19 @@ public class TextureChangePanel extends JPanel {
 	}
 
 	private int changeTexture(final List<HomePieceOfFurniture> furnitureList, final CatalogTexture fromTexture, final CatalogTexture toTexture, final Float shininess) {
-		int changedCount = 0;
 
+		if (fromTexture == null) {
+			JOptionPane.showMessageDialog(this, Local.str("TextureChangePanel.noFromTextureSelected"));							
+			return 0;
+		}
+		
+		if (toTexture == null) {
+			JOptionPane.showMessageDialog(this, Local.str("TextureChangePanel.noToTextureSelected"));							
+			return 0;
+		}
+		
+		int changedCount = 0;
+		
 		for (HomePieceOfFurniture piece: furnitureList) {
 			// Make a new materials list copying the old one and replacing matching elements as we go
 			final HomeMaterial[] oldMaterials = piece.getModelMaterials();

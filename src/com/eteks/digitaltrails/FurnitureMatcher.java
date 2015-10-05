@@ -1,6 +1,8 @@
 package com.eteks.digitaltrails;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.media.j3d.BranchGroup;
@@ -26,15 +28,16 @@ public final class FurnitureMatcher {
 
 	public List<HomePieceOfFurniture> findUsing(final CatalogTexture catalogTexture) {
 		shininess = null;
-		if (catalogTexture != null) {
-			for (HomePieceOfFurniture piece: inputList) {
-				traversePieces(piece, catalogTexture);
-			}	
-		}
-		return resultList;
-	}
+		for (HomePieceOfFurniture piece: inputList) {
+			traversePieces(piece, catalogTexture);
+		}	
+		Collections.sort(resultList, new Comparator<HomePieceOfFurniture>() {
 
-	public List<HomePieceOfFurniture> getResults() {
+			@Override
+			public int compare(HomePieceOfFurniture o1, HomePieceOfFurniture o2) {
+				return o1.getName().compareTo(o2.getName());
+			}
+		});
 		return resultList;
 	}
 
@@ -52,7 +55,7 @@ public final class FurnitureMatcher {
 		}
 		else {
 
-			if (checkMaterials(piece, catalogTexture)) {
+			if (catalogTexture == null || checkMaterials(piece, catalogTexture)) {
 				resultList.add(piece);
 			}
 		}	
