@@ -182,8 +182,8 @@ public class TextureSelectionPanel extends JPanel {
 			return;
 		}
 		if (first <= pos && pos <= last) {
-			listView.ensureIndexIsVisible(first);
 			listView.ensureIndexIsVisible(last);
+			listView.ensureIndexIsVisible(first);
 			return;
 		}
 		int v = listView.getVisibleRowCount();
