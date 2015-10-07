@@ -106,6 +106,10 @@ public class FurnitureSelectionPanel extends JPanel {
 						}));
 	}
 
+	public List<HomePieceOfFurniture> getListData() {
+		return listData;
+	}
+	
 	public void setListData(final List<HomePieceOfFurniture> list) {
 		listData = list;
 		listView.setListData(list.toArray(new HomePieceOfFurniture[list.size()]));

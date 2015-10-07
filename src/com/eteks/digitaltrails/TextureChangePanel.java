@@ -64,8 +64,14 @@ public class TextureChangePanel extends JPanel {
 		setLayout(new BorderLayout());
 		setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-		fromSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.fromTexture"), catalogTextureList);
-		toSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.toTextureTo"), catalogTextureList);
+		// Show all textures used by all furniture in use.
+		final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);
+		
+		fromSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.fromTexture"));
+		fromSelectionPanel.setListData(texturesInUse);
+		toSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.toTextureTo"));
+		toSelectionPanel.setListData(catalogTextureList);
+		
 		furnitureSelectionPanel = new FurnitureSelectionPanel();
 
 		fromSelectionPanel.addPopupAction(
@@ -75,10 +81,46 @@ public class TextureChangePanel extends JPanel {
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {					
 						fromSelectionPanel.setListData(catalogTextureList);
+						// TODO is the right thing to do...
 						furnitureSelectionPanel.setListData(new ArrayList<HomePieceOfFurniture>());
 					}
 				});
 
+		fromSelectionPanel.addPopupAction(
+				"ShowUsed", 
+				Local.str("TextureSelectionPanel.popup.showUsedLabel"), 
+				new TextureSelectionPanel.TextureSelectionAction() {						
+					@Override
+					public void actionPerformed(final String actionName, final CatalogTexture list) {
+						final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);
+						fromSelectionPanel.setListData(texturesInUse);
+						// TODO is the right thing to do...
+						furnitureSelectionPanel.setListData(new ArrayList<HomePieceOfFurniture>());
+					}
+				});
+
+		toSelectionPanel.addPopupAction(
+				"ShowAll", 
+				Local.str("TextureSelectionPanel.popup.showAllLabel"), 
+				new TextureSelectionPanel.TextureSelectionAction() {						
+					@Override
+					public void actionPerformed(final String actionName, final CatalogTexture list) {					
+						toSelectionPanel.setListData(catalogTextureList);
+					}
+				});
+
+		toSelectionPanel.addPopupAction(
+				"ShowUsed", 
+				Local.str("TextureSelectionPanel.popup.showUsedLabel"), 
+				new TextureSelectionPanel.TextureSelectionAction() {						
+					@Override
+					public void actionPerformed(final String actionName, final CatalogTexture list) {
+						final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);
+						toSelectionPanel.setListData(texturesInUse);
+					}
+				});
+		
+		
 		furnitureSelectionPanel.addPopupAction(
 				"ShowAll", 
 				Local.str("FurnitureSelectionPanel.popup.showAllLabel"), 
@@ -161,6 +203,26 @@ public class TextureChangePanel extends JPanel {
 			}
 		});
 
+		toSelectionPanel.addSelectionListener(new ListSelectionListener() {				
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				if (!handling) {
+					try {
+						handling = true;
+						// Check if anything is using this texture
+						final CatalogTexture selectedTexture = toSelectionPanel.getSelectedTexture();
+						if (selectedTexture != null) {
+							final FurnitureMatcher matcher = new FurnitureMatcher(furnitureList);
+							final List<HomePieceOfFurniture> references = matcher.findUsing(selectedTexture);
+							status.setText( Local.str("TextureChangePanel.otherFurnatureUsesTexture", references.size()));
+						}
+					}
+					finally {
+						handling = false;
+					} 
+				}
+			}
+		});
 
 		furnitureSelectionPanel.addSelectionListener(new ListSelectionListener() {				
 			@Override
@@ -172,7 +234,9 @@ public class TextureChangePanel extends JPanel {
 						status.setText(Local.str("TextureChangePanel.furnitureSelectedCount", furnitureSelectionPanel.getSelectedFurniture().size()));
 						final List<HomePieceOfFurniture> selectedFurniture = furnitureSelectionPanel.getSelectedFurniture();
 						if (selectedFurniture.isEmpty()) {
-							fromSelectionPanel.setListData(catalogTextureList);
+							final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);
+							fromSelectionPanel.setListData(texturesInUse);
+							//fromSelectionPanel.setListData(catalogTextureList);
 						}
 						else {
 							final List<CatalogTexture> matches = findCatalogTextures(selectedFurniture, catalogTextureList);
@@ -194,6 +258,12 @@ public class TextureChangePanel extends JPanel {
 				final CatalogTexture toTexture = toSelectionPanel.getSelectedTexture();
 				List<HomePieceOfFurniture> list = furnitureSelectionPanel.getSelectedFurniture();
 				final int changedCount = changeTexture(list, fromTexture, toTexture, shininessSelectionPanel.getShininess());
+				if (changedCount > 0) {
+					final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);				
+					fromSelectionPanel.setListData(texturesInUse);
+					fromSelectionPanel.setSelected(toTexture);
+					toSelectionPanel.setSelected(null);
+				}
 				status.setText(Local.str("TextureChangePanel.modified", changedCount));
 			}
 		});
@@ -226,6 +296,7 @@ public class TextureChangePanel extends JPanel {
 			// Make a new materials list copying the old one and replacing matching elements as we go
 			final HomeMaterial[] oldMaterials = piece.getModelMaterials();
 			final HomeMaterial[] materials = new HomeMaterial[oldMaterials.length];
+			boolean anyChanges = false;
 			for (int i = 0; i < materials.length; i++) {
 				if (oldMaterials[i] != null && oldMaterials[i].getTexture() != null && oldMaterials[i].getTexture().getName().equals(fromTexture.getName())) {
 					final HomeMaterial old = oldMaterials[i];
@@ -233,11 +304,14 @@ public class TextureChangePanel extends JPanel {
 					final Float newShininess = shininess != null ? shininess : old.getShininess();
 					// TODO check old shininess really does get the old value
 					materials[i] = new HomeMaterial(old.getName(), old.getColor(), newTexture, newShininess);
-					changedCount++;
+					anyChanges = true;
 				}
 				else {
 					materials[i] = piece.getModelMaterials()[i];
 				}
+			}
+			if (anyChanges) {
+				changedCount++;
 			}
 			piece.setModelMaterials(materials);
 		}

@@ -69,11 +69,12 @@ public class TextureSelectionPanel extends JPanel {
 
 	private final JPopupMenu popupMenu;
 	
-	private List<CatalogTexture> listData = new ArrayList<CatalogTexture>();
+	private List<CatalogTexture> allData = new ArrayList<CatalogTexture>();
+	private List<CatalogTexture> viewableData = allData;
 	
 	private CatalogTexture popupTarget;
 	
-	public TextureSelectionPanel(final String title, final List<CatalogTexture> catalogTextureList) {
+	public TextureSelectionPanel(final String title) {
 
 		setLayout(new BorderLayout());
 		setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -84,7 +85,7 @@ public class TextureSelectionPanel extends JPanel {
 		listView.setCellRenderer(new CatalogTextureCellRenderer());
 		listView.setVisibleRowCount(30);
 		listView.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		setListDataOnly(catalogTextureList);
+		setViewableData(viewableData);
 
 		popupMenu = new JPopupMenu() {
 			private static final long serialVersionUID = 1L;
@@ -125,15 +126,15 @@ public class TextureSelectionPanel extends JPanel {
 				final String matchStr = isearchField.getText();
 				if (matchStr.length() > 0) {
 					final List<CatalogTexture> matches = new ArrayList<CatalogTexture>();
-					for (CatalogTexture ct: catalogTextureList) {
+					for (CatalogTexture ct: allData) {
 						if (ct.getName().toLowerCase().contains(matchStr.toLowerCase())) {
 							matches.add(ct);
 						}
 					}
-					setListDataOnly(matches);
+					setViewableData(matches);
 				}
 				else {
-					setListDataOnly(catalogTextureList);
+					setViewableData(allData);
 				}
 			}	
 		});
@@ -166,10 +167,11 @@ public class TextureSelectionPanel extends JPanel {
 		listView.ensureIndexIsVisible(index);	
 	}
 
-	public void setListData(final List<CatalogTexture> choices) {
+	public void setListData(final List<CatalogTexture> dataList) {
+		allData = dataList;
 		final CatalogTexture oldSelected = listView.getSelectedValue();
-		setListDataOnly(choices);
-		for (CatalogTexture choice: choices) {
+		setViewableData(dataList);
+		for (CatalogTexture choice: dataList) {
 			if (choice == oldSelected) { // Pointers the same
 				listView.setSelectedValue(choice, false);
 			}
@@ -177,9 +179,21 @@ public class TextureSelectionPanel extends JPanel {
 		isearchField.setText("");
 	}
 	
-	private void setListDataOnly(final List<CatalogTexture> choices) {
-		listData = choices;
-		listView.setListData(listData.toArray(new CatalogTexture[listData.size()]));
+	public void setSelected(CatalogTexture selected) {
+		if (selected == null) {
+			listView.clearSelection();
+		}
+		else if (viewableData.contains(selected)) {
+			listView.setSelectedValue(selected, true);
+		}
+		else {
+			System.err.println("Attempt to select an item not in the visible list of textures.");
+		}
+	}
+	
+	private void setViewableData(final List<CatalogTexture> viewableData) {
+		this.viewableData = viewableData;
+		listView.setListData(viewableData.toArray(new CatalogTexture[viewableData.size()]));
 	}
 	
 	public void ensureIsVisible(final int first, final int last, final String name) {
@@ -194,14 +208,14 @@ public class TextureSelectionPanel extends JPanel {
 		}
 		int v = listView.getVisibleRowCount();
 		int top = pos - v > 0 ? pos - v : 0;
-		int bottom = pos + v < listData.size() ? pos + v : listData.size() - 1;
+		int bottom = pos + v < viewableData.size() ? pos + v : viewableData.size() - 1;
 		listView.ensureIndexIsVisible(top);
 		listView.ensureIndexIsVisible(bottom);
 	}
 	
 	public int indexOf(final String name) {
 		int i = 0;
-		for (CatalogTexture piece: listData) {
+		for (CatalogTexture piece: viewableData) {
 			if (piece.getName().equals(name)) {
 				return i;
 			}
