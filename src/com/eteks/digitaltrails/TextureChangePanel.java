@@ -39,6 +39,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import com.eteks.digitaltrails.TextureMatcher.UncatalogedTexture;
 import com.eteks.sweethome3d.model.CatalogTexture;
 import com.eteks.sweethome3d.model.HomeFurnitureGroup;
 import com.eteks.sweethome3d.model.HomeMaterial;
@@ -65,7 +66,7 @@ public class TextureChangePanel extends JPanel {
 		setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
 		// Show all textures used by all furniture in use.
-		final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);
+		final List<CatalogTexture> texturesInUse = new TextureMatcher(catalogTextureList).findUsedBy(furnitureList);
 		
 		fromSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.fromTexture"));
 		fromSelectionPanel.setListData(texturesInUse);
@@ -92,7 +93,7 @@ public class TextureChangePanel extends JPanel {
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {
-						final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);
+						final List<CatalogTexture> texturesInUse = new TextureMatcher(catalogTextureList).findUsedBy(furnitureList);
 						fromSelectionPanel.setListData(texturesInUse);
 						// TODO is the right thing to do...
 						furnitureSelectionPanel.setListData(new ArrayList<HomePieceOfFurniture>());
@@ -115,7 +116,7 @@ public class TextureChangePanel extends JPanel {
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {
-						final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);
+						final List<CatalogTexture> texturesInUse = new TextureMatcher(catalogTextureList).findUsedBy(furnitureList);
 						toSelectionPanel.setListData(texturesInUse);
 					}
 				});
@@ -234,12 +235,12 @@ public class TextureChangePanel extends JPanel {
 						status.setText(Local.str("TextureChangePanel.furnitureSelectedCount", furnitureSelectionPanel.getSelectedFurniture().size()));
 						final List<HomePieceOfFurniture> selectedFurniture = furnitureSelectionPanel.getSelectedFurniture();
 						if (selectedFurniture.isEmpty()) {
-							final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);
+							final List<CatalogTexture> texturesInUse = new TextureMatcher(catalogTextureList).findUsedBy(furnitureList);
 							fromSelectionPanel.setListData(texturesInUse);
 							//fromSelectionPanel.setListData(catalogTextureList);
 						}
 						else {
-							final List<CatalogTexture> matches = findCatalogTextures(selectedFurniture, catalogTextureList);
+							final List<CatalogTexture> matches = new TextureMatcher(catalogTextureList).findUsedBy(selectedFurniture);
 							fromSelectionPanel.setListData(matches);
 							//furnitureSelectionPanel.setChoices(selectedFurniture);
 						}
@@ -259,7 +260,7 @@ public class TextureChangePanel extends JPanel {
 				List<HomePieceOfFurniture> list = furnitureSelectionPanel.getSelectedFurniture();
 				final int changedCount = changeTexture(list, fromTexture, toTexture, shininessSelectionPanel.getShininess());
 				if (changedCount > 0) {
-					final List<CatalogTexture> texturesInUse = findCatalogTextures(furnitureList, catalogTextureList);				
+					final List<CatalogTexture> texturesInUse = new TextureMatcher(catalogTextureList).findUsedBy(furnitureList);				
 					fromSelectionPanel.setListData(texturesInUse);
 					fromSelectionPanel.setSelected(toTexture);
 					toSelectionPanel.setSelected(null);
@@ -296,6 +297,8 @@ public class TextureChangePanel extends JPanel {
 			// Make a new materials list copying the old one and replacing matching elements as we go
 			final HomeMaterial[] oldMaterials = piece.getModelMaterials();
 			final HomeMaterial[] materials = new HomeMaterial[oldMaterials.length];
+			final HomeMaterial[] defaultMaterials = TextureMatcher.loadDefaultMaterials(piece);
+
 			boolean anyChanges = false;
 			for (int i = 0; i < materials.length; i++) {
 				if (oldMaterials[i] != null && oldMaterials[i].getTexture() != null && oldMaterials[i].getTexture().getName().equals(fromTexture.getName())) {
@@ -306,6 +309,15 @@ public class TextureChangePanel extends JPanel {
 					materials[i] = new HomeMaterial(old.getName(), old.getColor(), newTexture, newShininess);
 					anyChanges = true;
 				}
+//				else if (fromTexture instanceof UncatalogedTexture) {					
+//					if (i < defaultMaterials.length && defaultMaterials[i] != null && defaultMaterials[i].getName().equals(fromTexture.getName())) {
+//						final HomeMaterial old = defaultMaterials[i];
+//						final HomeTexture newTexture = new HomeTexture(toTexture);	
+//						final Float newShininess = shininess != null ? shininess : old.getShininess();
+//						materials[i] = new HomeMaterial(old.getName(), old.getColor(), newTexture, newShininess);
+//						anyChanges = true;
+//					}
+//				}
 				else {
 					materials[i] = piece.getModelMaterials()[i];
 				}
@@ -316,43 +328,5 @@ public class TextureChangePanel extends JPanel {
 			piece.setModelMaterials(materials);
 		}
 		return changedCount;
-	}
-
-
-	private List<CatalogTexture> findCatalogTextures(final List<HomePieceOfFurniture> furnitureList, final List<CatalogTexture> fullCatalogTextureList) {
-		final Set<String> index = new HashSet<String>();
-
-		for (HomePieceOfFurniture piece: furnitureList) {
-			traversePieces(piece, index);
-		}
-
-		final List<CatalogTexture> results = new ArrayList<CatalogTexture>();
-
-		for (CatalogTexture possible: fullCatalogTextureList) {
-			if (index.contains(possible.getName())) {
-				results.add(possible);
-			}
-		}
-		return results;
-	}
-
-	private void traversePieces(final HomePieceOfFurniture piece, final Set<String> index) {
-		if (piece instanceof HomeFurnitureGroup) {
-			// Recurse into the group
-			HomeFurnitureGroup group = (HomeFurnitureGroup) piece;
-			for (HomePieceOfFurniture member : group.getFurniture() ) {
-				traversePieces(member, index);
-			}
-		}
-		else {
-			final HomeMaterial[] materials = piece.getModelMaterials();
-			if (materials != null) {
-				for (int i = 0; i < materials.length; i++) {
-					if (materials[i] != null && materials[i].getTexture() != null) {
-						index.add(materials[i].getTexture().getName());
-					}
-				}
-			}
-		}	
 	}
 }
