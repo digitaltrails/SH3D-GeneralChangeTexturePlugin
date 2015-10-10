@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import com.eteks.digitaltrails.TextureMatcher.UncatalogedTexture;
+import com.eteks.digitaltrails.TextureMatcher.NonCatalogTexture;
 import com.eteks.sweethome3d.model.CatalogTexture;
 import com.eteks.sweethome3d.model.HomeFurnitureGroup;
 import com.eteks.sweethome3d.model.HomeMaterial;
@@ -64,6 +64,7 @@ public final class FurnitureMatcher {
 
 		final HomeMaterial[] materials = piece.getModelMaterials();
 		final HomeMaterial[] defaultMaterials = TextureMatcher.loadDefaultMaterials(piece);
+		// This is horrible
 		if (materials != null) {
 			for (int i = 0; i < materials.length; i++) {
 				// TODO consider URL as the unique ID rather than the name.
@@ -74,19 +75,23 @@ public final class FurnitureMatcher {
 					else if (defaultMaterials != null && defaultMaterials.length > i) {
 						if (defaultMaterials[i].getShininess() != null) {
 							shininess = defaultMaterials[i].getShininess();
-						}
-						
+						}						
 					}
 					return true;
 				}
-//				else if (targetTexture instanceof UncatalogedTexture) {
-//					if (i < defaultMaterials.length && defaultMaterials[i] != null && defaultMaterials[i].getName().equals(targetTexture.getName())) {
-//						if (defaultMaterials[i].getShininess() != null) {
-//							shininess = defaultMaterials[i].getShininess();
-//						}
-//						return true;
-//					}
-//				}
+			}
+		}
+		if (defaultMaterials != null && targetTexture instanceof NonCatalogTexture) {
+			NonCatalogTexture uncatalogedTarget = (NonCatalogTexture) targetTexture;
+			for (int i = 0; i < defaultMaterials.length; i++) {
+				if (materials == null || materials[i] == null || materials[i].getTexture() == null) {
+					if (defaultMaterials[i] != null && defaultMaterials[i].getName().equals(uncatalogedTarget.getMaterialName())) {
+						if (defaultMaterials[i].getShininess() != null) {
+							shininess = defaultMaterials[i].getShininess();
+						}
+						return true;
+					}
+				}
 			}
 		}
 		return false;
