@@ -23,6 +23,7 @@ package com.eteks.digitaltrailscolor;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +47,7 @@ public class ColorChanger {
 		this.furnatureList = furnatureList;
 	}
 
-	public List<Integer> findInUse(Map<Integer, Set<String>> index) {
+	public List<Integer> findInUse(Map<Integer, Map<String,Integer>> index) {
 		Set<Integer> result = new TreeSet<Integer>();
 		for (Room room: roomList) {
 			addIfNotNull(room.getName() + ".ceiling" , room.getCeilingColor(), result, index);
@@ -102,28 +103,28 @@ public class ColorChanger {
 		else if (left == null  || right == null) {
 			return false;
 		}
-		// compare ignoring alpna 
-		return (left & 0x00FFFFFF) == (right & 0x00FFFFFF);
+		// compare ignoring alpha 
+		return colorNoAlpha(left) == colorNoAlpha(right);
 		//return left.equals(right); 
 	}
 
-	private void addIfNotNull(String reference, Integer color, Set<Integer> result, Map<Integer, Set<String>> index) {
+	private void addIfNotNull(String reference, Integer color, Set<Integer> result, Map<Integer, Map<String, Integer>> index) {
 		if (color != null) {
-			result.add(color);
+			result.add(colorNoAlpha(color));
 			if (index != null) {
-				Set<String> currentReferences = index.get(color);
+				Map<String, Integer> currentReferences = index.get(colorNoAlpha(color));
 				if (reference != null) {
 					if (currentReferences == null) {
-						currentReferences = new TreeSet<String>();
+						currentReferences = new HashMap<String,Integer>();
 					}
-					currentReferences.add(reference);
-					index.put(color, currentReferences);
+					currentReferences.put(reference, (currentReferences.containsKey(reference) ? currentReferences.get(reference) : 0) + 1);
+					index.put(colorNoAlpha(color), currentReferences);
 				}
 			}
 		}
 	}
 
-	private void traversePieces(final HomePieceOfFurniture piece, Set<Integer> result, Map<Integer, Set<String>> index) {
+	private void traversePieces(final HomePieceOfFurniture piece, Set<Integer> result, Map<Integer, Map<String, Integer>> index) {
 
 		if (piece instanceof HomeFurnitureGroup) {
 			// Recurse into the group
@@ -140,22 +141,23 @@ public class ColorChanger {
 	}
 
 
-	private void findMaterialColors(final HomePieceOfFurniture piece, Set<Integer> result, Map<Integer, Set<String>> index) {
+	private void findMaterialColors(final HomePieceOfFurniture piece, Set<Integer> result, Map<Integer, Map<String, Integer>> index) {
 
 		final HomeMaterial[] materials = piece.getModelMaterials();
 		final HomeMaterial[] defaultMaterials = TextureMatcher.loadDefaultMaterials(piece);
 
 		if (materials != null) {
 			for (int i = 0; i < materials.length; i++) {
-				if (materials[i] != null && materials[i].getColor() != null) {
-					addIfNotNull(piece.getName() + "." + materials[i].getName()  ,materials[i].getColor(), result, index);
+				if (materials[i] != null) {
+					if (materials[i].getColor() != null) {
+						addIfNotNull(piece.getName() + "." + materials[i].getName()  ,materials[i].getColor(), result, index);
+					}
 				}
 			}
 		}
 		if (defaultMaterials != null) {
-
 			for (int i = 0; i < defaultMaterials.length; i++) {
-				if (materials == null || materials[i] == null || materials[i].getColor() == null) {
+				if (materials == null || materials[i] == null || (materials[i].getTexture() == null && materials[i].getColor() == null)) {
 					if (defaultMaterials[i] != null && defaultMaterials[i].getColor() != null) {
 						addIfNotNull(piece.getName() + "." + defaultMaterials[i].getName(), defaultMaterials[i].getColor(), result, index);
 					}
@@ -215,9 +217,11 @@ public class ColorChanger {
 				}
 			}
 			else if (defaultMaterials != null && defaultMaterials[i] != null && sameColor(defaultMaterials[i].getColor(), from)) {
-				HomeMaterial defaultMaterial = defaultMaterials[i];
-				newMaterials[i] = new HomeMaterial(defaultMaterial.getName(), copyAlpha(defaultMaterial.getColor(), to), defaultMaterial.getTexture(), defaultMaterial.getShininess());
-				changedCount++;
+				if (oldMaterials == null || oldMaterials[i] == null || (oldMaterials[i].getTexture() == null && oldMaterials[i].getColor() == null)) {
+					HomeMaterial defaultMaterial = defaultMaterials[i];
+					newMaterials[i] = new HomeMaterial(defaultMaterial.getName(), copyAlpha(defaultMaterial.getColor(), to), defaultMaterial.getTexture(), defaultMaterial.getShininess());
+					changedCount++;
+				}
 			}
 
 		}
@@ -229,14 +233,18 @@ public class ColorChanger {
 
 		return changedCount;
 	}
-	
+
+	public final static int colorNoAlpha(int color) {
+		return color & 0x00FFFFFF;
+	}
+
 	private int copyAlpha(final int from, final int to) {
 		// Alpha's don't seem to contribute anything?
 		return to;
-//		if ((to & 0xFF000000) != 0xFF000000) {
-//			return to;
-//		}
-//		return (from & 0xFF000000) | (to & 0x00FFFFFF);
+		//		if ((to & 0xFF000000) != 0xFF000000) {
+		//			return to;
+		//		}
+		//		return (from & 0xFF000000) | (to & 0x00FFFFFF);
 	}
 }
 
