@@ -51,6 +51,7 @@ import javax.swing.colorchooser.AbstractColorChooserPanel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import com.eteks.digitaltrailscolor.ColorChanger.UndoRedoColorChange;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
@@ -61,7 +62,7 @@ public class ColorChangePanel extends JPanel {
 
 
 
-	public ColorChangePanel(final List<Room> roomList, Collection<Wall> wallList, final List<HomePieceOfFurniture> furnitureList) {
+	public ColorChangePanel(final List<Room> roomList, Collection<Wall> wallList, final List<HomePieceOfFurniture> furnitureList, final ChangeColorPlugin context) {
 		final ColorChanger changer = new ColorChanger(roomList, wallList, furnitureList);
 
 		setLayout(new BorderLayout());
@@ -104,8 +105,10 @@ public class ColorChangePanel extends JPanel {
 						final Integer to = ColorChanger.colorNoAlpha(toColor.getRGB());
 
 						// Show all textures used by all furniture in use.
-
-						int count = changer.change(from, to);
+						
+						UndoRedoColorChange undoableEdit = new UndoRedoColorChange(from, to);
+						int count = changer.change(from, to, undoableEdit);
+						context.getUndoableEditSupport().postEdit(undoableEdit);
 
 						index.clear();
 						final List<Integer> inUse = changer.findInUse(index);

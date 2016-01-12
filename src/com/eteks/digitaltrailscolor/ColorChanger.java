@@ -26,8 +26,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+
+import javax.swing.undo.AbstractUndoableEdit;
+import javax.swing.undo.CannotRedoException;
+import javax.swing.undo.CannotUndoException;
 
 import com.eteks.sweethome3d.model.HomeFurnitureGroup;
 import com.eteks.sweethome3d.model.HomeMaterial;
@@ -65,15 +70,17 @@ public class ColorChanger {
 		return new ArrayList<Integer>(result);
 	}
 
-	public int change(Integer from, Integer to) {
+	public int change(Integer from, Integer to, UndoRedoColorChange undoableEdit) {
 		int count = 0;
 		for (Room room: roomList) {
 			if (sameColor(room.getCeilingColor(), from)) {
 				room.setCeilingColor(to);
+				undoableEdit.addRoomCeiling(room);
 				count++;
 			}
 			if (sameColor(room.getFloorColor(), from)) {
 				room.setFloorColor(to);
+				undoableEdit.addRoomFloor(room);
 				count++;
 			}
 		}
@@ -81,16 +88,18 @@ public class ColorChanger {
 		for (Wall wall: wallList) {
 			if (sameColor(wall.getLeftSideColor(), from)) {
 				wall.setLeftSideColor(to);
+				undoableEdit.addWallLeftSide(wall);
 				count++;
 			}
 			if (sameColor(wall.getRightSideColor(), from)) {
 				wall.setRightSideColor(to);
+				undoableEdit.addWallRightSide(wall);
 				count++;
 			}
 		}
 
 		for (HomePieceOfFurniture piece: furnatureList) {
-			count += traverseAndChangePieces(piece, from, to);
+			count += traverseAndChangePieces(piece, from, to, undoableEdit);
 		}		
 
 		return count;
@@ -167,7 +176,7 @@ public class ColorChanger {
 	}	
 
 
-	private int traverseAndChangePieces(HomePieceOfFurniture piece, Integer from, Integer to) {
+	private int traverseAndChangePieces(HomePieceOfFurniture piece, Integer from, Integer to, UndoRedoColorChange undoableEdit) {
 
 		int count = 0;
 
@@ -176,15 +185,16 @@ public class ColorChanger {
 				// Recurse into the group
 				HomeFurnitureGroup group = (HomeFurnitureGroup) piece;
 				for (HomePieceOfFurniture member : group.getFurniture() ) {
-					count += traverseAndChangePieces(member, from, to);
+					count += traverseAndChangePieces(member, from, to, undoableEdit);
 				}
 			}
 			else { 
-				count += changeMaterialColors(piece, from, to);
+				count += changeMaterialColors(piece, from, to, undoableEdit);
 			}
 
 			if (sameColor(piece.getColor(), from)) {
 				piece.setColor(copyAlpha(piece.getColor(), to));
+				undoableEdit.addFurniture(piece);
 				count++;
 			}
 
@@ -193,7 +203,7 @@ public class ColorChanger {
 	}
 
 
-	private int changeMaterialColors(final HomePieceOfFurniture piece, final Integer from, final Integer to) {
+	private int changeMaterialColors(final HomePieceOfFurniture piece, final Integer from, final Integer to, UndoRedoColorChange undoableEdit) {
 
 		int changedCount = 0;
 		Float shininess = null;
@@ -227,6 +237,7 @@ public class ColorChanger {
 		}
 		if (changedCount > 0) {
 			piece.setModelMaterials(newMaterials);
+			undoableEdit.addMaterials(piece, oldMaterials, newMaterials);
 			TextureMatcher.loadDefaultMaterials(piece);
 			piece.setVisible(piece.isVisible());
 		}
@@ -245,6 +256,104 @@ public class ColorChanger {
 		//			return to;
 		//		}
 		//		return (from & 0xFF000000) | (to & 0x00FFFFFF);
+	}
+	
+	public final static class UndoRedoColorChange extends AbstractUndoableEdit {
+		private static final long serialVersionUID = 1L;
+		private final List<Room> floors = new ArrayList<Room>();
+		private final List<Room> ceilings = new ArrayList<Room>();
+		private final List<Wall> leftWalls = new ArrayList<Wall>();
+		private final List<Wall> rightWalls = new ArrayList<Wall>();
+		private final List<HomePieceOfFurniture> furnitureColors = new ArrayList<HomePieceOfFurniture>();
+		private final Map<HomePieceOfFurniture, HomeMaterial[][]> materials = new HashMap<HomePieceOfFurniture, HomeMaterial[][]>();
+		private final int from;
+		private final int to;
+
+		public UndoRedoColorChange(final int from, final int to) {
+			this.from = from;
+			this.to = to;
+		}
+		
+		public void addRoomFloor(Room room) {
+			floors.add(room);
+		}
+		
+		public void addRoomCeiling(Room room) {
+			ceilings.add(room);
+		}
+		
+		public void addWallLeftSide(Wall wall) {
+			leftWalls.add(wall);
+		}
+		
+		public void addWallRightSide(Wall wall) {
+			rightWalls.add(wall);
+		}
+		
+		public void addFurniture(HomePieceOfFurniture piece) {
+			furnitureColors.add(piece);
+		}
+		
+		public void addMaterials(HomePieceOfFurniture piece, HomeMaterial[] oldMaterials, HomeMaterial newMaterials[]) {
+			materials.put(piece, new HomeMaterial[][] { oldMaterials, newMaterials });
+		}
+		
+		@Override
+		public void undo() throws CannotUndoException {
+			super.undo();
+			for (Room room: floors) {
+				room.setFloorColor(from);
+			}
+			for (Room room: ceilings) {
+				room.setCeilingColor(from);
+			}
+			for (Wall wall: leftWalls) {
+				wall.setLeftSideColor(from);
+			}
+			for (Wall wall: rightWalls) {
+				wall.setRightSideColor(from);
+			}
+			for (HomePieceOfFurniture piece: furnitureColors) {
+				piece.setColor(from);
+			}
+			for (Entry<HomePieceOfFurniture, HomeMaterial[][]> entry: materials.entrySet()) {
+				final HomePieceOfFurniture piece = entry.getKey();
+				piece.setModelMaterials(entry.getValue()[0]);
+				piece.setVisible(piece.isVisible());
+			}
+		}
+		
+		@Override
+		public void redo() throws CannotRedoException {
+			super.redo();
+			for (Room room: floors) {
+				room.setFloorColor(to);
+			}
+			for (Room room: ceilings) {
+				room.setCeilingColor(to);
+			}
+			for (Wall wall: leftWalls) {
+				wall.setLeftSideColor(to);
+			}
+			for (Wall wall: rightWalls) {
+				wall.setRightSideColor(to);
+			}
+			for (HomePieceOfFurniture piece: furnitureColors) {
+				piece.setColor(to);
+			}
+			for (Entry<HomePieceOfFurniture, HomeMaterial[][]> entry: materials.entrySet()) {
+				final HomePieceOfFurniture piece = entry.getKey();
+				piece.setModelMaterials(entry.getValue()[1]);
+				piece.setVisible(piece.isVisible());
+			}
+		}
+		
+		@Override
+		public String getPresentationName() {
+			return Local.str("ColorChanger.undoPresentationName");
+		}
+		
+   		
 	}
 }
 

@@ -44,7 +44,7 @@ public class ChangeColorUI extends JFrame {
 		
 		final Collection<Wall> wallList = context.getHome().getWalls();
 		
-		final ColorChangePanel colorChangePanel = new ColorChangePanel(roomList, wallList, furnitureList);
+		final ColorChangePanel colorChangePanel = new ColorChangePanel(roomList, wallList, furnitureList, context);
 		setContentPane(colorChangePanel);
 	}
 	
