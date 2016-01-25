@@ -153,7 +153,7 @@ public class ColorChanger {
 	private void findMaterialColors(final HomePieceOfFurniture piece, Set<Integer> result, Map<Integer, Map<String, Integer>> index) {
 
 		final HomeMaterial[] materials = piece.getModelMaterials();
-		final HomeMaterial[] defaultMaterials = TextureMatcher.loadDefaultMaterials(piece);
+		final HomeMaterial[] defaultMaterials = Util.loadDefaultMaterials(piece);
 
 		if (materials != null) {
 			for (int i = 0; i < materials.length; i++) {
@@ -210,7 +210,7 @@ public class ColorChanger {
 
 		// Make a new materials list copying the old one and replacing matching elements as we go
 		final HomeMaterial[] oldMaterials = piece.getModelMaterials();
-		final HomeMaterial[] defaultMaterials = TextureMatcher.loadDefaultMaterials(piece);
+		final HomeMaterial[] defaultMaterials = Util.loadDefaultMaterials(piece);
 		final HomeMaterial[] newMaterials = new HomeMaterial[oldMaterials != null ? oldMaterials.length : defaultMaterials.length];
 
 		for (int i = 0; i < newMaterials.length; i++) {
@@ -238,7 +238,7 @@ public class ColorChanger {
 		if (changedCount > 0) {
 			piece.setModelMaterials(newMaterials);
 			undoableEdit.addMaterials(piece, oldMaterials, newMaterials);
-			TextureMatcher.loadDefaultMaterials(piece);
+			Util.loadDefaultMaterials(piece);
 			piece.setVisible(piece.isVisible());
 		}
 
