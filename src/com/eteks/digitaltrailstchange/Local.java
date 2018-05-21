@@ -1,7 +1,7 @@
 /*
- * ChangeColorPlugin 7 Jan. 2016
+ * Local.java 24 Sept. 2015
  *
- * Sweet Home 3D, Copyright (c) 2016 Michael Hamilton / michael at actrix.gen.nz
+ * Sweet Home 3D, Copyright (c) 2015 Michael Hamilton / michael at actrix.gen.nz
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-package com.eteks.digitaltrailscolor;
+package com.eteks.digitaltrailstchange;
 
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -25,7 +25,7 @@ import java.util.ResourceBundle;
 public final class Local {
 
 	private static final ResourceBundle BUNDLE = ResourceBundle.getBundle(
-				"com.eteks.digitaltrailscolor.ApplicationPlugin",
+				"com.eteks.digitaltrailstchange.ApplicationPlugin",
 				Locale.getDefault(),
 				Local.class.getClassLoader());
 	

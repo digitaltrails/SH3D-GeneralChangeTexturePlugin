@@ -2,8 +2,8 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="src" path="/SweetHome3D"/>
 	<classpathentry kind="lib" path="/SweetHome3D/lib/j3dcore.jar"/>
 	<classpathentry kind="lib" path="/SweetHome3D/lib/j3dutils.jar"/>
+	<classpathentry kind="lib" path="/home/michael/workspace-luna/SweetHome3D-5.7.jar" sourcepath="/SweetHome3D-5.7-src.zip_expanded"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
