@@ -45,7 +45,7 @@ public class ShininessSelectionPanel extends JPanel {
 
 		final JLabel titleLable = new JLabel(Local.str("ShininessSelectionPanel.title"));
 		
-		enableSliderCheckBox = new JCheckBox(Local.str("ShininessSelectionPanel.enabled"), true);
+		enableSliderCheckBox = new JCheckBox(Local.str("ShininessSelectionPanel.enabled"), false);
 
 		shininessSlider = new JSlider(JSlider.HORIZONTAL, 0, 128, 100);
 		shininessSlider.setToolTipText(Local.str("ShininessSelectionPanel.tip"));
@@ -57,6 +57,7 @@ public class ShininessSelectionPanel extends JPanel {
 		shininessSlider.setPaintLabels(true);
 		shininessSlider.setPaintTicks(true);
 		shininessSlider.setMajorTickSpacing(16);
+		shininessSlider.setEnabled(enableSliderCheckBox.isSelected());
 				
 		add(titleLable, BorderLayout.PAGE_START);
 		add(enableSliderCheckBox, BorderLayout.PAGE_END);

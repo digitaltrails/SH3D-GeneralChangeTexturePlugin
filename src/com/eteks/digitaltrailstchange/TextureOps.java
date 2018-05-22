@@ -375,7 +375,7 @@ public class TextureOps {
 	}	
 
 
-	private int traverseAndChangePieces(HomePieceOfFurniture piece, CatalogTexture from, CatalogTexture to, float shinyness, UndoRedoTextureChange undoableEdit) {
+	private int traverseAndChangePieces(HomePieceOfFurniture piece, CatalogTexture from, CatalogTexture to, Float shinyness, UndoRedoTextureChange undoableEdit) {
 
 		int count = 0;
 
@@ -428,7 +428,7 @@ public class TextureOps {
 		}
 		if (defaultMaterials != null) {
 			for (int i = 0; i < newMaterials.length; i++) {
-				if (newMaterials[i] != null && newMaterials[i].getTexture() == null && defaultMaterials[i] != null && sameTexture(defaultMaterials[i], from)) {
+				if ((newMaterials[i] == null || newMaterials[i].getTexture() == null) && defaultMaterials[i] != null && sameTexture(defaultMaterials[i], from)) {
 					final HomeMaterial defaultMaterial = defaultMaterials[i];
 					newMaterials[i] = new HomeMaterial(defaultMaterial.getName(), null, new HomeTexture(to), shininess != null ? shininess : defaultMaterial.getShininess());
 					changedCount++;
