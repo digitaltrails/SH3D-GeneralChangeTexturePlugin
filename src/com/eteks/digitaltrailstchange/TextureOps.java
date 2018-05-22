@@ -240,7 +240,7 @@ public class TextureOps {
 		}
 		// compare ignoring alpha 
 		final String homeTextureId = homeTexture.getCatalogId() != null ? homeTexture.getCatalogId() : homeTexture.getName();
-		System.out.println("homeTexture id=" + homeTextureId + "<=> catalogTexture id=" + catalogTexture.getId());
+		System.out.println("HT homeTexture id=" + homeTextureId + "<=> catalogTexture id=" + catalogTexture.getId());
 		if (homeTextureId == null || catalogTexture.getId() == null) {
 			return false;
 		}
@@ -256,7 +256,7 @@ public class TextureOps {
 		}
 		// compare ignoring alpha
 		final String catalogId = homeMaterial.getTexture().getCatalogId() != null ? homeMaterial.getTexture().getCatalogId() : homeMaterial.getName();
-		System.out.println("homeMaterial id=" + catalogId + "<=> catalogTexture id=" + catalogTexture.getId());
+		System.out.println("MT homeMaterial id=" + catalogId + "<=> catalogTexture id=" + catalogTexture.getId());
 		if (catalogId == null || catalogTexture.getId() == null) {
 			return false;
 		}
@@ -426,9 +426,9 @@ public class TextureOps {
 				}
 			}
 		}
-		else if (defaultMaterials != null) {
+		if (defaultMaterials != null) {
 			for (int i = 0; i < newMaterials.length; i++) {
-				if (defaultMaterials[i] != null && sameTexture(defaultMaterials[i], from)) {
+				if (newMaterials[i] != null && newMaterials[i].getTexture() == null && defaultMaterials[i] != null && sameTexture(defaultMaterials[i], from)) {
 					final HomeMaterial defaultMaterial = defaultMaterials[i];
 					newMaterials[i] = new HomeMaterial(defaultMaterial.getName(), null, new HomeTexture(to), shininess != null ? shininess : defaultMaterial.getShininess());
 					changedCount++;
