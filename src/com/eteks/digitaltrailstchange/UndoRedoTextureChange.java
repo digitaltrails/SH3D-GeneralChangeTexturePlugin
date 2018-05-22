@@ -78,7 +78,7 @@ public final class UndoRedoTextureChange extends AbstractUndoableEdit {
 
 	private final Map<HomePieceOfFurniture, HomeMaterial[][]> materials = new HashMap<HomePieceOfFurniture, HomeMaterial[][]>();
 
-	public void addRoomFloor(final Room room, final HomeTexture newTexture, final float newShinyness) {
+	public void addRoomFloor(final Room room, final HomeTexture newTexture, final Float newShinyness) {
 		simpleChanges.add(new SimpleChange(room.getFloorTexture(), room.getFloorShininess(), newTexture, newShinyness) {
 			@Override
 			public void undo() {
@@ -92,7 +92,7 @@ public final class UndoRedoTextureChange extends AbstractUndoableEdit {
 			}} );
 	}
 
-	public void addRoomCeiling(final Room room, final HomeTexture newTexture, final float newShinyness) {
+	public void addRoomCeiling(final Room room, final HomeTexture newTexture, final Float newShinyness) {
 		simpleChanges.add(new SimpleChange(room.getCeilingTexture(), room.getCeilingShininess(), newTexture, newShinyness) {
 			@Override
 			public void undo() {
@@ -106,7 +106,7 @@ public final class UndoRedoTextureChange extends AbstractUndoableEdit {
 			}} );
 	}
 
-	public void addWallLeftSide(final Wall wall, final HomeTexture newTexture, final float newShinyness) {
+	public void addWallLeftSide(final Wall wall, final HomeTexture newTexture, final Float newShinyness) {
 		simpleChanges.add(new SimpleChange(wall.getLeftSideTexture(), wall.getLeftSideShininess(), newTexture, newShinyness) {
 			@Override
 			public void undo() {
@@ -120,7 +120,7 @@ public final class UndoRedoTextureChange extends AbstractUndoableEdit {
 			}} );
 	}
 
-	public void addWallRightSide(final Wall wall, final HomeTexture newTexture, final float newShinyness) {
+	public void addWallRightSide(final Wall wall, final HomeTexture newTexture, final Float newShinyness) {
 		simpleChanges.add(new SimpleChange(wall.getRightSideTexture(), wall.getRightSideShininess(), newTexture, newShinyness) {
 			@Override
 			public void undo() {
@@ -134,7 +134,7 @@ public final class UndoRedoTextureChange extends AbstractUndoableEdit {
 			}} );
 	}
 
-	public void addWallLeftSideBaseboard(final Wall wall, final HomeTexture newTexture) {
+	public void addWallLeftSideBaseboard(final Wall wall, final HomeTexture newTexture) { 
 		simpleChanges.add(new SimpleChange(wall.getLeftSideBaseboard().getTexture(), null, newTexture, null) {
 			@Override
 			public void undo() {
@@ -167,7 +167,7 @@ public final class UndoRedoTextureChange extends AbstractUndoableEdit {
 	}
 
 
-	public void addFurniture(final HomePieceOfFurniture piece, final HomeTexture newTexture, final float newShinyness) {
+	public void addFurniture(final HomePieceOfFurniture piece, final HomeTexture newTexture, final Float newShinyness) {
 		simpleChanges.add(new SimpleChange(piece.getTexture(), piece.getShininess(), newTexture, newShinyness) {
 			@Override
 			public void undo() {
