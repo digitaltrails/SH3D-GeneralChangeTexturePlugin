@@ -367,7 +367,19 @@ public class TextureOps {
 			for (int i = 0; i < defaultMaterials.length; i++) {
 				if (materials == null || i >= materials.length || materials[i] == null || (materials[i].getTexture() == null && materials[i].getColor() == null)) {
 					if (defaultMaterials[i] != null && defaultMaterials[i].getTexture() != null) {
-						add(new TextureUse(getCatalogTexture(defaultMaterials[i]), piece, defaultMaterials[i]), usageMap);
+						// iterate through materials and only include when the default isn't already overridden.
+						boolean overridden = false;
+						if (materials != null) {
+							for (int j = 0; j < materials.length; j++) {
+								if (materials[j] != null && materials[j].getName() != null && materials[j].getName().equals(defaultMaterials[i].getName())) {
+									overridden = true;
+									break;
+								}
+							}
+						}
+						if (!overridden) {
+							add(new TextureUse(getCatalogTexture(defaultMaterials[i]), piece, defaultMaterials[i]), usageMap);
+						}
 					}
 				}
 			}
@@ -410,34 +422,44 @@ public class TextureOps {
 		// Make a new materials list copying the old one and replacing matching elements as we go
 		final HomeMaterial[] oldMaterials = piece.getModelMaterials();
 		final HomeMaterial[] defaultMaterials = Util.loadDefaultMaterials(piece);
-		final HomeMaterial[] newMaterials = new HomeMaterial[oldMaterials != null ? oldMaterials.length : defaultMaterials.length];
+		final List<HomeMaterial> newMaterialsList =  new ArrayList<HomeMaterial>();//new HomeMaterial[oldMaterials != null ? oldMaterials.length : defaultMaterials.length];
 		if (oldMaterials != null) {
-			for (int i = 0; i < newMaterials.length; i++) {
+			for (int i = 0; i < oldMaterials.length; i++) {
 				if (oldMaterials[i] != null) {
 					if (oldMaterials[i].getTexture() != null && sameTexture(oldMaterials[i], from)) {
 						final HomeMaterial oldMaterial = oldMaterials[i];;	
 						final Float newShininess = shininess  != null ? shininess : oldMaterial.getShininess();
-						newMaterials[i] = new HomeMaterial(oldMaterial.getName(), oldMaterial.getColor(), new HomeTexture(to), newShininess);
+						newMaterialsList.add(new HomeMaterial(oldMaterial.getName(), oldMaterial.getColor(), new HomeTexture(to), newShininess));
 						changedCount++;
 					}
 					else if (i < oldMaterials.length) {
-						newMaterials[i] = oldMaterials[i];
+						newMaterialsList.add(oldMaterials[i]);
 					}
 				}
 			}
 		}
 		if (defaultMaterials != null) {
-			for (int i = 0; i < newMaterials.length; i++) {
-				if ((newMaterials[i] == null || newMaterials[i].getTexture() == null) && defaultMaterials[i] != null && sameTexture(defaultMaterials[i], from)) {
+			for (int i = 0; i < defaultMaterials.length; i++) {
+				if (defaultMaterials[i] != null && sameTexture(defaultMaterials[i], from)) {
 					final HomeMaterial defaultMaterial = defaultMaterials[i];
-					newMaterials[i] = new HomeMaterial(defaultMaterial.getName(), null, new HomeTexture(to), shininess != null ? shininess : defaultMaterial.getShininess());
-					changedCount++;
+					boolean overridden = false;
+					for (HomeMaterial existing: newMaterialsList) {
+						if (existing.getName() != null && existing.getName().equals(defaultMaterial.getName())) {
+							overridden = true;
+							break;
+						}		
+					}
+					if (!overridden) {
+						newMaterialsList.add(new HomeMaterial(defaultMaterial.getName(), null, new HomeTexture(to), shininess != null ? shininess : defaultMaterial.getShininess()));
+						changedCount++;
+					}
 				}
 			}
 		}
 		if (changedCount > 0) {
 			piece.setColor(null);
 			piece.setTexture(null);
+			final HomeMaterial[] newMaterials = newMaterialsList.toArray(new HomeMaterial[newMaterialsList.size()]);
 			piece.setModelMaterials(newMaterials);
 			undoableEdit.addMaterials(piece, oldMaterials, newMaterials);
 			piece.setVisible(piece.isVisible());
