@@ -272,7 +272,7 @@ public class TextureOps {
 	private void findUsedTextures(final HomePieceOfFurniture piece, final Map<String, List<TextureUse>> usageMap) {
 		FunatureInspector funitureInspector = new FunatureInspector() {
 			@Override
-			public void process(HomePieceOfFurniture piece, HomeMaterial material) {
+			public void process(HomePieceOfFurniture piece, HomeMaterial material, boolean isDefaultMaterial) {
 				if (material != null) {
 					if (material.getTexture() != null) {
 						addToMappings(new TextureUse(getCatalogTexture(material), piece, material), usageMap);
@@ -337,7 +337,7 @@ public class TextureOps {
 		
 		final FunatureInspector furnatureInspector = new FunatureInspector() {
 			@Override
-			public void process(HomePieceOfFurniture piece, HomeMaterial material) {
+			public void process(HomePieceOfFurniture piece, HomeMaterial material, boolean isDefaultMaterial) {
 				if (material != null) {
 					if (material.getTexture() != null && isMatchForTexture(material, from)) {
 						final HomeMaterial oldMaterial = material;	
@@ -345,7 +345,7 @@ public class TextureOps {
 						newMaterialsList.add(new HomeMaterial(oldMaterial.getName(), null, new HomeTexture(to), newShininess));
 						changedCount[0]++;
 					}
-					else  {
+					else if (!isDefaultMaterial) {
 						newMaterialsList.add(material);
 					}
 				}
@@ -393,7 +393,7 @@ public class TextureOps {
 
 	private boolean isMatchForTexture(HomeMaterial homeMaterial, CatalogTexture catalogTexture) {
 		if (homeMaterial.getTexture() == null && catalogTexture == null) {
-			return true;
+			return false;
 		}
 		else if (homeMaterial.getTexture() == null  || catalogTexture == null) {
 			return false;
@@ -404,12 +404,13 @@ public class TextureOps {
 		if (catalogId == null || catalogTexture.getId() == null) {
 			return false;
 		}
+		System.out.println("MT homeMaterial id=" + catalogId + "<=> catalogTexture id=" + catalogTexture.getId() + " " + catalogId.equals(catalogTexture.getId()));
 		return catalogId.equals(catalogTexture.getId());
 	}
 	
 	public static abstract class FunatureInspector {
 		
-		public abstract void process(HomePieceOfFurniture piece, HomeMaterial material);
+		public abstract void process(HomePieceOfFurniture piece, HomeMaterial material, boolean isDefaultMaterial);
 		
 		public void inspect(HomePieceOfFurniture piece) {
 			if (piece != null) {
@@ -423,7 +424,7 @@ public class TextureOps {
 				else { 
 					inspectMaterials(piece);
 				}
-				process(piece, null);
+				process(piece, null, false);
 			}
 		}
 
@@ -435,15 +436,16 @@ public class TextureOps {
 			final HomeMaterial[] defaultMaterials = Util.loadDefaultMaterials(piece);
 			
 			if (customMaterials != null) {
-				for (HomeMaterial customMaterial: customMaterials) {
-					if (customMaterial != null) {
-						process(piece, customMaterial);
+				for (int i = 0; i < customMaterials.length; i++) {
+					if (customMaterials[i] != null) {
+						process(piece, customMaterials[i], false);
 					}
 				}
 			}
 			if (defaultMaterials != null) {
-				for (HomeMaterial defaultMaterial: defaultMaterials) {
-					if (defaultMaterial != null) {
+				for (int i = 0; i < defaultMaterials.length; i++) {
+					if (defaultMaterials[i] != null) {
+						final HomeMaterial defaultMaterial = defaultMaterials[i];
 						boolean overridden = false;
 						if (customMaterials != null ) {
 							for (HomeMaterial customMaterial: customMaterials) {
@@ -454,7 +456,7 @@ public class TextureOps {
 							}
 						}
 						if (!overridden) {
-							process(piece, defaultMaterial);
+							process(piece, defaultMaterial, true);
 						}
 					}
 				}
