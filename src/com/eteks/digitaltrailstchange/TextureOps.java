@@ -435,16 +435,15 @@ public class TextureOps {
 			final HomeMaterial[] defaultMaterials = Util.loadDefaultMaterials(piece);
 			
 			if (customMaterials != null) {
-				for (int i = 0; i < customMaterials.length; i++) {
-					if (customMaterials[i] != null) {
-						process(piece, customMaterials[i]);
+				for (HomeMaterial customMaterial: customMaterials) {
+					if (customMaterial != null) {
+						process(piece, customMaterial);
 					}
 				}
 			}
 			if (defaultMaterials != null) {
-				for (int i = 0; i < defaultMaterials.length; i++) {
-					if (defaultMaterials[i] != null) {
-						final HomeMaterial defaultMaterial = defaultMaterials[i];
+				for (HomeMaterial defaultMaterial: defaultMaterials) {
+					if (defaultMaterial != null) {
 						boolean overridden = false;
 						if (customMaterials != null ) {
 							for (HomeMaterial customMaterial: customMaterials) {
