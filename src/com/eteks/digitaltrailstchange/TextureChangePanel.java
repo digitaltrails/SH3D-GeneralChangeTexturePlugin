@@ -69,9 +69,9 @@ public class TextureChangePanel extends JPanel {
 		textureOps = new TextureOps(pluginContext.getHome(), pluginContext.getUserPreferences());
 		
 		fromSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.fromTexture"));
-		fromSelectionPanel.setListData(textureOps.getCatalogTexturesInUse());
+		fromSelectionPanel.setListData(textureOps.findTexturesBeingUsed());
 		toSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.toTextureTo"));
-		toSelectionPanel.setListData(textureOps.getAllCatalogTextures());
+		toSelectionPanel.setListData(textureOps.findAllCatalogTextures());
 				
 		modelItemSelectionPanel = new ModelItemSelectionPanel();
 
@@ -81,7 +81,7 @@ public class TextureChangePanel extends JPanel {
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {	
-						fromSelectionPanel.setListData(textureOps.getAllCatalogTextures());
+						fromSelectionPanel.setListData(textureOps.findAllCatalogTextures());
 						modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
 					}
 				});
@@ -92,7 +92,7 @@ public class TextureChangePanel extends JPanel {
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {
-						final List<CatalogTexture> texturesInUse = textureOps.getCatalogTexturesInUse();
+						final List<CatalogTexture> texturesInUse = textureOps.findTexturesBeingUsed();
 						fromSelectionPanel.setListData(texturesInUse);
 						modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
 					}
@@ -104,7 +104,7 @@ public class TextureChangePanel extends JPanel {
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {					
-						toSelectionPanel.setListData(textureOps.getAllCatalogTextures());
+						toSelectionPanel.setListData(textureOps.findAllCatalogTextures());
 					}
 				});
 
@@ -114,7 +114,7 @@ public class TextureChangePanel extends JPanel {
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {
-						final List<CatalogTexture> texturesInUse = textureOps.getCatalogTexturesInUse();
+						final List<CatalogTexture> texturesInUse = textureOps.findTexturesBeingUsed();
 						toSelectionPanel.setListData(texturesInUse);
 					}
 				});
@@ -126,7 +126,7 @@ public class TextureChangePanel extends JPanel {
 				new ModelItemSelectionPanel.ModelItemSelectionAction() {			
 					@Override
 					public void actionPerformed(final String actionName, final TextureUse list) {
-						modelItemSelectionPanel.setListData(textureOps.getAllItems());
+						modelItemSelectionPanel.setListData(textureOps.findAllReferencesToTextures());
 					}
 				});
 
@@ -175,7 +175,7 @@ public class TextureChangePanel extends JPanel {
 
 							// Show referenced furniture
 					
-							final List<TextureUse> references = textureOps.lookupItemsUsing(selectedTexture);
+							final List<TextureUse> references = textureOps.findItemsUsingTexture(selectedTexture);
 							
 							final Float shininess = null;
 							modelItemSelectionPanel.setListData(references);
@@ -207,7 +207,7 @@ public class TextureChangePanel extends JPanel {
 						// Check if anything is using this texture
 						final CatalogTexture selectedTexture = toSelectionPanel.getSelectedTexture();
 						if (selectedTexture != null) {
-							final List<TextureUse> references = textureOps.lookupItemsUsing(selectedTexture);
+							final List<TextureUse> references = textureOps.findItemsUsingTexture(selectedTexture);
 							status.setText( Local.str("TextureChangePanel.otherFurnatureUsesTexture", references.size()));
 						}
 					}
@@ -228,7 +228,7 @@ public class TextureChangePanel extends JPanel {
 						status.setText(Local.str("TextureChangePanel.furnitureSelectedCount", modelItemSelectionPanel.getSelectedItems().size()));
 						final List<TextureUse> selectedItems = modelItemSelectionPanel.getSelectedItems();
 						if (selectedItems.isEmpty()) {
-							final List<CatalogTexture> texturesInUse = textureOps.getCatalogTexturesInUse();
+							final List<CatalogTexture> texturesInUse = textureOps.findTexturesBeingUsed();
 							fromSelectionPanel.setListData(texturesInUse);
 							//fromSelectionPanel.setListData(catalogTextureList);
 						}

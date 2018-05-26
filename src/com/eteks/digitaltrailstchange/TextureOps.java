@@ -19,8 +19,6 @@
  */
 package com.eteks.digitaltrailstchange;
 
-
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,94 +43,47 @@ public class TextureOps {
 	
 	private final  Map<String, List<TextureUse>> usageMap;
 	private final  Map<Object, List<CatalogTexture>> reverseMap;
-	private final  List<CatalogTexture> catalogTexturesInUse;
+	private final  List<CatalogTexture> texturesInUse;
 	private final  List<CatalogTexture> allTextures;
 	private final  Home home;
+	private final  UserPreferences userPreferences;
 	
 	public TextureOps(final Home home, final UserPreferences preferences) {
 
 		this.home = home;
-		allTextures = initAllTextures(preferences);
+		userPreferences = preferences;
+		allTextures = new ArrayList<CatalogTexture>();
 		catalogTexturesById = new HashMap<String, CatalogTexture>();
 		nonCatalogIndex = new HashMap<String, NonCatalogTexture>();
 		usageMap = new HashMap<String, List<TextureUse>>();
 		reverseMap = new HashMap<Object, List<CatalogTexture>>();
-		catalogTexturesInUse = new ArrayList<CatalogTexture>();
+		texturesInUse = new ArrayList<CatalogTexture>();
 		refreshIndexes();
 	}
 
-	private void refreshIndexes() {
-		usageMap.clear();
-		reverseMap.clear();
-		catalogTexturesInUse.clear();
-		
-		for (CatalogTexture texture: allTextures) {
-			catalogTexturesById.put(texture.getId(), texture);	
-		}
-		
-		for (Room room: home.getRooms()) {
-			if (room.getCeilingTexture() != null) {
-				add(new TextureUse(getCatalogTexture(room.getCeilingTexture()), room, TextureUsageEnum.RoomCeiling), usageMap);
-			}
-			if (room.getFloorTexture() != null) {
-				add(new TextureUse(getCatalogTexture(room.getFloorTexture()), room, TextureUsageEnum.RoomFloor), usageMap);
-			}
-		}
-
-		for (Wall wall: home.getWalls()) {
-			if (wall.getLeftSideTexture() != null) {
-				add(new TextureUse(getCatalogTexture(wall.getLeftSideTexture()), wall, TextureUsageEnum.WallLeftSide), usageMap);
-			}
-			if (wall.getRightSideTexture() != null) {
-				add(new TextureUse(getCatalogTexture(wall.getRightSideTexture()), wall, TextureUsageEnum.WallRightSide), usageMap);
-			}
-			if (wall.getLeftSideBaseboard() != null) {
-				if (wall.getLeftSideBaseboard().getTexture() != null) {
-					add(new TextureUse(getCatalogTexture(wall.getLeftSideBaseboard().getTexture()), wall, TextureUsageEnum.WallLeftSideBaseboard), usageMap);
-				}
-			}
-			if (wall.getRightSideBaseboard() != null) {
-				if (wall.getRightSideBaseboard().getTexture() != null) {
-					add(new TextureUse(getCatalogTexture(wall.getRightSideBaseboard().getTexture()), wall, TextureUsageEnum.WallRightSideBaseboard), usageMap);
-				}
-			}
-		}
-
-		for (HomePieceOfFurniture piece: home.getFurniture()) {
-			traversePieces(piece, usageMap);
-		}
-		for (List<TextureUse> usages: usageMap.values()) {
-			if (usages.size() > 0) {
-				catalogTexturesInUse.add(usages.get(0).getCatalogTexture());
-			}
-		}
-	}
-	
-	private static List<CatalogTexture> initAllTextures(final UserPreferences preferences) {
-		final List<CatalogTexture> allCatalogTextures = new ArrayList<CatalogTexture>();
-		
-		for (TexturesCategory category : preferences.getTexturesCatalog().getCategories()) {
-			for (CatalogTexture ct : category.getTextures()) {
-				allCatalogTextures.add(ct);
-			}
-		}	
-		return allCatalogTextures;
-	}
-	
-	public List<CatalogTexture> getAllCatalogTextures() {
-		refreshIndexes();
+	/**
+	 * Finds only cataloged textures (some items have their on non catalog default textures).
+	 * @return list of catalog textures
+	 */
+	public List<CatalogTexture> findAllCatalogTextures() {
 		return allTextures;
 	}
 	
-	
-	public List<TextureUse> lookupItemsUsing(final CatalogTexture targetTexture) {
-		refreshIndexes();
+	/**
+	 * Find items using this texture.
+	 * @param targetTexture
+	 * @return
+	 */
+	public List<TextureUse> findItemsUsingTexture(final CatalogTexture targetTexture) {
 		final List<TextureUse> result = usageMap.get(targetTexture.getId()); 
 		return result != null ? result : new ArrayList<TextureUse>(0);
 	}
 	
-	public List<TextureUse> getAllItems() {
-		refreshIndexes();
+	/**
+	 * Find all items using any textures, both catalog and non-catalog (default textures).
+	 * @return
+	 */
+	public List<TextureUse> findAllReferencesToTextures() {
 		List<TextureUse> list = new ArrayList<TextureUse>();
 		for (List<TextureUse> sublist : usageMap.values()) {
 			list.addAll(sublist);
@@ -140,13 +91,20 @@ public class TextureOps {
 		return list;
 	}
 
-	public List<CatalogTexture> getCatalogTexturesInUse() {
-		refreshIndexes();
-		return catalogTexturesInUse;
+	/**
+	 * Find all catalog and non catalog textures in use in this home.
+	 * @return list of textures being used in this home.
+	 */
+	public List<CatalogTexture> findTexturesBeingUsed() {
+		return texturesInUse;
 	}
 
+	/**
+	 * For the texture references, find what other textures the items are also using.
+	 * @param uses
+	 * @return
+	 */
 	public List<CatalogTexture> findUsedBy(List<TextureUse> uses) {
-		refreshIndexes();
 		List<CatalogTexture> result = new ArrayList<CatalogTexture>();
 		for (TextureUse use: uses) {
 			List<CatalogTexture> matches = reverseMap.get(use.getReferer());
@@ -157,13 +115,17 @@ public class TextureOps {
 		return result;
 	}
 
+	public void refresh() {
+		refreshIndexes();
+	}
+	
 	public TextureChangeResult change(List<TextureUse> list, CatalogTexture from, CatalogTexture to, Float shininess) {
 		int count = 0;
 		UndoRedoTextureChange undoableEdit = new UndoRedoTextureChange();
 		for (TextureUse target: list) {
 			if (target.getRoom() != null) {
 				Room room = target.getRoom();
-				if (sameTexture(room.getCeilingTexture(), from)) {
+				if (isMatchForTexture(room.getCeilingTexture(), from)) {
 					final HomeTexture newTexture = new HomeTexture(to);
 					undoableEdit.addRoomCeiling(room, newTexture, shininess);
 					room.setCeilingTexture(newTexture);
@@ -172,7 +134,7 @@ public class TextureOps {
 					}
 					count++;
 				}
-				if (sameTexture(room.getFloorTexture(), from)) {
+				if (isMatchForTexture(room.getFloorTexture(), from)) {
 					final HomeTexture newTexture = new HomeTexture(to);
 					undoableEdit.addRoomFloor(room, newTexture, shininess);
 					room.setFloorTexture(newTexture);
@@ -185,7 +147,7 @@ public class TextureOps {
 
 			if (target.getWall() != null) {
 				Wall wall = target.getWall();
-				if (sameTexture(wall.getLeftSideTexture(), from)) {
+				if (isMatchForTexture(wall.getLeftSideTexture(), from)) {
 					final HomeTexture newTexture = new HomeTexture(to);
 					undoableEdit.addWallLeftSide(wall, newTexture, shininess);
 					wall.setLeftSideTexture(newTexture);
@@ -194,7 +156,7 @@ public class TextureOps {
 					}
 					count++;
 				}
-				if (sameTexture(wall.getRightSideTexture(), from)) {
+				if (isMatchForTexture(wall.getRightSideTexture(), from)) {
 					final HomeTexture newTexture = new HomeTexture(to);
 					undoableEdit.addWallRightSide(wall, newTexture, shininess);
 					wall.setRightSideTexture(newTexture);
@@ -204,7 +166,7 @@ public class TextureOps {
 					count++;
 				}
 				
-				if (wall.getLeftSideBaseboard() != null && sameTexture(wall.getLeftSideBaseboard().getTexture(), from)) {
+				if (wall.getLeftSideBaseboard() != null && isMatchForTexture(wall.getLeftSideBaseboard().getTexture(), from)) {
 					final Baseboard oldBaseboard = wall.getLeftSideBaseboard();
 					final HomeTexture newTexture = new HomeTexture(to);
 					final Baseboard newBaseboard = Baseboard.getInstance(oldBaseboard.getThickness(), oldBaseboard.getHeight(), oldBaseboard.getColor(), newTexture);
@@ -212,7 +174,7 @@ public class TextureOps {
 					wall.setLeftSideBaseboard(newBaseboard);
 					count++;
 				}
-				if (wall.getRightSideBaseboard() != null && sameTexture(wall.getRightSideBaseboard().getTexture(), from)) {
+				if (wall.getRightSideBaseboard() != null && isMatchForTexture(wall.getRightSideBaseboard().getTexture(), from)) {
 					final Baseboard oldBaseboard = wall.getRightSideBaseboard();
 					final HomeTexture newTexture = new HomeTexture(to);
 					final Baseboard newBaseboard = Baseboard.getInstance(oldBaseboard.getThickness(), oldBaseboard.getHeight(), oldBaseboard.getColor(), newTexture);
@@ -224,46 +186,68 @@ public class TextureOps {
 			}
 			if (target.getPieceOfFuniture() != null) {
 				HomePieceOfFurniture piece = target.getPieceOfFuniture();
-				count += traverseAndChangePieces(piece, from, to, shininess, undoableEdit);
+				count += changeFurnitureTexture(piece, from, to, shininess, undoableEdit);
 			}
 		}
 		refreshIndexes();
 		return new TextureChangeResult(undoableEdit, count);
 	}
+	
+	private void refreshIndexes() {
+		allTextures.clear();
+		usageMap.clear();
+		reverseMap.clear();
+		texturesInUse.clear();
+		
+		for (TexturesCategory category : userPreferences.getTexturesCatalog().getCategories()) {
+			for (CatalogTexture ct : category.getTextures()) {
+				allTextures.add(ct);
+			}
+		}	
+		
+		for (CatalogTexture texture: allTextures) {
+			catalogTexturesById.put(texture.getId(), texture);	
+		}
+		
+		for (Room room: home.getRooms()) {
+			if (room.getCeilingTexture() != null) {
+				addToMappings(new TextureUse(getCatalogTexture(room.getCeilingTexture()), room, TextureUsageEnum.RoomCeiling), usageMap);
+			}
+			if (room.getFloorTexture() != null) {
+				addToMappings(new TextureUse(getCatalogTexture(room.getFloorTexture()), room, TextureUsageEnum.RoomFloor), usageMap);
+			}
+		}
 
-	private boolean sameTexture(HomeTexture homeTexture, CatalogTexture catalogTexture) {
-		if (homeTexture == null && catalogTexture == null) {
-			return true;
+		for (Wall wall: home.getWalls()) {
+			if (wall.getLeftSideTexture() != null) {
+				addToMappings(new TextureUse(getCatalogTexture(wall.getLeftSideTexture()), wall, TextureUsageEnum.WallLeftSide), usageMap);
+			}
+			if (wall.getRightSideTexture() != null) {
+				addToMappings(new TextureUse(getCatalogTexture(wall.getRightSideTexture()), wall, TextureUsageEnum.WallRightSide), usageMap);
+			}
+			if (wall.getLeftSideBaseboard() != null) {
+				if (wall.getLeftSideBaseboard().getTexture() != null) {
+					addToMappings(new TextureUse(getCatalogTexture(wall.getLeftSideBaseboard().getTexture()), wall, TextureUsageEnum.WallLeftSideBaseboard), usageMap);
+				}
+			}
+			if (wall.getRightSideBaseboard() != null) {
+				if (wall.getRightSideBaseboard().getTexture() != null) {
+					addToMappings(new TextureUse(getCatalogTexture(wall.getRightSideBaseboard().getTexture()), wall, TextureUsageEnum.WallRightSideBaseboard), usageMap);
+				}
+			}
 		}
-		else if (homeTexture == null  || catalogTexture == null) {
-			return false;
-		}
-		// compare ignoring alpha 
-		final String homeTextureId = homeTexture.getCatalogId() != null ? homeTexture.getCatalogId() : homeTexture.getName();
-		System.out.println("HT homeTexture id=" + homeTextureId + "<=> catalogTexture id=" + catalogTexture.getId());
-		if (homeTextureId == null || catalogTexture.getId() == null) {
-			return false;
-		}
-		return homeTextureId.equals(catalogTexture.getId());
-	}
 
-	private boolean sameTexture(HomeMaterial homeMaterial, CatalogTexture catalogTexture) {
-		if (homeMaterial.getTexture() == null && catalogTexture == null) {
-			return true;
+		for (HomePieceOfFurniture piece: home.getFurniture()) {
+			findUsedTextures(piece, usageMap);
 		}
-		else if (homeMaterial.getTexture() == null  || catalogTexture == null) {
-			return false;
+		for (List<TextureUse> usages: usageMap.values()) {
+			if (usages.size() > 0) {
+				texturesInUse.add(usages.get(0).getCatalogTexture());
+			}
 		}
-		// compare ignoring alpha
-		final String catalogId = homeMaterial.getTexture().getCatalogId() != null ? homeMaterial.getTexture().getCatalogId() : homeMaterial.getName();
-		System.out.println("MT homeMaterial id=" + catalogId + "<=> catalogTexture id=" + catalogTexture.getId());
-		if (catalogId == null || catalogTexture.getId() == null) {
-			return false;
-		}
-		return catalogId.equals(catalogTexture.getId());
 	}
 	
-	private void add(TextureUse textureUse, Map<String, List<TextureUse>> usageMap) {
+	private void addToMappings(TextureUse textureUse, Map<String, List<TextureUse>> usageMap) {
 
 		final CatalogTexture catalogTexture = textureUse.getCatalogTexture();
 
@@ -285,6 +269,24 @@ public class TextureOps {
 		reverseRefs.add(catalogTexture);
 	}
 	
+	private void findUsedTextures(final HomePieceOfFurniture piece, final Map<String, List<TextureUse>> usageMap) {
+		FunatureInspector funitureInspector = new FunatureInspector() {
+			@Override
+			public void process(HomePieceOfFurniture piece, HomeMaterial material) {
+				if (material != null) {
+					if (material.getTexture() != null) {
+						addToMappings(new TextureUse(getCatalogTexture(material), piece, material), usageMap);
+					}
+				}
+				else {
+					if (piece.getTexture() != null) {
+						addToMappings(new TextureUse(getCatalogTexture(piece.getTexture()), piece), usageMap);
+					}
+				}
+			}
+		};
+		funitureInspector.inspect(piece);
+	}
 
 	private CatalogTexture getCatalogTexture(HomeTexture homeTexture) {
 		final String id = homeTexture.getCatalogId();
@@ -300,7 +302,6 @@ public class TextureOps {
 		return catalogTexture;
 	}
 	
-
 	private CatalogTexture getCatalogTexture(HomeMaterial homeMaterial) {
 		
 		final HomeTexture homeTexture = homeMaterial.getTexture();
@@ -330,133 +331,40 @@ public class TextureOps {
 		return texture;
 	}
 
-	private void traversePieces(final HomePieceOfFurniture piece, Map<String, List<TextureUse>> usageMap) {
-
-		if (piece instanceof HomeFurnitureGroup) {
-			// Recurse into the group
-			HomeFurnitureGroup group = (HomeFurnitureGroup) piece;
-			for (HomePieceOfFurniture member : group.getFurniture() ) {
-				traversePieces(member, usageMap);
-			}
-		}
-		else {
-			findMaterialTextures(piece, usageMap);
-		}
-		if (piece.getTexture() != null) {
-			add(new TextureUse(getCatalogTexture(piece.getTexture()), piece), usageMap);
-		}
-
-	}
-
-
-	private void findMaterialTextures(final HomePieceOfFurniture piece, Map<String, List<TextureUse>> usageMap) {
-
-		final HomeMaterial[] materials = piece.getModelMaterials();
-		final HomeMaterial[] defaultMaterials = Util.loadDefaultMaterials(piece);
-
-		if (materials != null) {
-			for (int i = 0; i < materials.length; i++) {
-				if (materials[i] != null) {
-					if (materials[i].getTexture() != null) {
-						add(new TextureUse(getCatalogTexture(materials[i]), piece, materials[i]), usageMap);
-					}
-				}
-			}
-		}
-		if (defaultMaterials != null) {
-			for (int i = 0; i < defaultMaterials.length; i++) {
-				if (materials == null || i >= materials.length || materials[i] == null || (materials[i].getTexture() == null && materials[i].getColor() == null)) {
-					if (defaultMaterials[i] != null && defaultMaterials[i].getTexture() != null) {
-						// iterate through materials and only include when the default isn't already overridden.
-						boolean overridden = false;
-						if (materials != null) {
-							for (int j = 0; j < materials.length; j++) {
-								if (materials[j] != null && materials[j].getName() != null && materials[j].getName().equals(defaultMaterials[i].getName())) {
-									overridden = true;
-									break;
-								}
-							}
-						}
-						if (!overridden) {
-							add(new TextureUse(getCatalogTexture(defaultMaterials[i]), piece, defaultMaterials[i]), usageMap);
-						}
-					}
-				}
-			}
-		}
-	}	
-
-
-	private int traverseAndChangePieces(HomePieceOfFurniture piece, CatalogTexture from, CatalogTexture to, Float shinyness, UndoRedoTextureChange undoableEdit) {
-
-		int count = 0;
-
-		if (piece != null) {
-			if (piece instanceof HomeFurnitureGroup) {
-				// Recurse into the group
-				HomeFurnitureGroup group = (HomeFurnitureGroup) piece;
-				for (HomePieceOfFurniture member : group.getFurniture() ) {
-					count += traverseAndChangePieces(member, from, to, shinyness, undoableEdit);
-				}
-			}
-			else { 
-				count += changeMaterialTexture(piece, from, to,shinyness, undoableEdit);
-			}
-			if (piece.getTexture() != null) {
-				if (sameTexture(piece.getTexture(), from)) {
-					final HomeTexture newTexture = new HomeTexture(to);
-					undoableEdit.addFurniture(piece, newTexture, shinyness);
-					piece.setTexture(newTexture);
-					count++;
-				}
-			}
-		}
-		return count;
-	}
-
-
-	private int changeMaterialTexture(final HomePieceOfFurniture piece, final CatalogTexture from, final CatalogTexture to, final Float shininess, UndoRedoTextureChange undoableEdit) {
-
-		int changedCount = 0;
-
-		// Make a new materials list copying the old one and replacing matching elements as we go
-		final HomeMaterial[] oldMaterials = piece.getModelMaterials();
-		final HomeMaterial[] defaultMaterials = Util.loadDefaultMaterials(piece);
+	private int changeFurnitureTexture(final HomePieceOfFurniture piece, final CatalogTexture from, final CatalogTexture to, final Float shininess, final UndoRedoTextureChange undoableEdit) {
+		final int changedCount[] = {0} ;
 		final List<HomeMaterial> newMaterialsList =  new ArrayList<HomeMaterial>();//new HomeMaterial[oldMaterials != null ? oldMaterials.length : defaultMaterials.length];
-		if (oldMaterials != null) {
-			for (int i = 0; i < oldMaterials.length; i++) {
-				if (oldMaterials[i] != null) {
-					if (oldMaterials[i].getTexture() != null && sameTexture(oldMaterials[i], from)) {
-						final HomeMaterial oldMaterial = oldMaterials[i];;	
+		
+		final FunatureInspector furnatureInspector = new FunatureInspector() {
+			@Override
+			public void process(HomePieceOfFurniture piece, HomeMaterial material) {
+				if (material != null) {
+					if (material.getTexture() != null && isMatchForTexture(material, from)) {
+						final HomeMaterial oldMaterial = material;	
 						final Float newShininess = shininess  != null ? shininess : oldMaterial.getShininess();
-						newMaterialsList.add(new HomeMaterial(oldMaterial.getName(), oldMaterial.getColor(), new HomeTexture(to), newShininess));
-						changedCount++;
+						newMaterialsList.add(new HomeMaterial(oldMaterial.getName(), null, new HomeTexture(to), newShininess));
+						changedCount[0]++;
 					}
-					else if (i < oldMaterials.length) {
-						newMaterialsList.add(oldMaterials[i]);
+					else  {
+						newMaterialsList.add(material);
+					}
+				}
+				else {
+					if (piece.getTexture() != null) {
+						if (isMatchForTexture(piece.getTexture(), from)) {
+							final HomeTexture newTexture = new HomeTexture(to);
+							undoableEdit.addFurniture(piece, newTexture, shininess);
+							piece.setTexture(newTexture);
+							changedCount[0]++;
+						}
 					}
 				}
 			}
-		}
-		if (defaultMaterials != null) {
-			for (int i = 0; i < defaultMaterials.length; i++) {
-				if (defaultMaterials[i] != null && sameTexture(defaultMaterials[i], from)) {
-					final HomeMaterial defaultMaterial = defaultMaterials[i];
-					boolean overridden = false;
-					for (HomeMaterial existing: newMaterialsList) {
-						if (existing.getName() != null && existing.getName().equals(defaultMaterial.getName())) {
-							overridden = true;
-							break;
-						}		
-					}
-					if (!overridden) {
-						newMaterialsList.add(new HomeMaterial(defaultMaterial.getName(), null, new HomeTexture(to), shininess != null ? shininess : defaultMaterial.getShininess()));
-						changedCount++;
-					}
-				}
-			}
-		}
-		if (changedCount > 0) {
+		};
+		
+		furnatureInspector.inspect(piece);
+		if (changedCount[0] > 0) {
+			final HomeMaterial[] oldMaterials = piece.getModelMaterials();
 			piece.setColor(null);
 			piece.setTexture(null);
 			final HomeMaterial[] newMaterials = newMaterialsList.toArray(new HomeMaterial[newMaterialsList.size()]);
@@ -464,8 +372,99 @@ public class TextureOps {
 			undoableEdit.addMaterials(piece, oldMaterials, newMaterials);
 			piece.setVisible(piece.isVisible());
 		}
-		return changedCount;
+		return changedCount[0];
+	}
+	
+	private boolean isMatchForTexture(HomeTexture homeTexture, CatalogTexture catalogTexture) {
+		if (homeTexture == null && catalogTexture == null) {
+			return true;
+		}
+		else if (homeTexture == null  || catalogTexture == null) {
+			return false;
+		}
+		// compare ignoring alpha 
+		final String homeTextureId = homeTexture.getCatalogId() != null ? homeTexture.getCatalogId() : homeTexture.getName();
+		System.out.println("HT homeTexture id=" + homeTextureId + "<=> catalogTexture id=" + catalogTexture.getId());
+		if (homeTextureId == null || catalogTexture.getId() == null) {
+			return false;
+		}
+		return homeTextureId.equals(catalogTexture.getId());
 	}
 
+	private boolean isMatchForTexture(HomeMaterial homeMaterial, CatalogTexture catalogTexture) {
+		if (homeMaterial.getTexture() == null && catalogTexture == null) {
+			return true;
+		}
+		else if (homeMaterial.getTexture() == null  || catalogTexture == null) {
+			return false;
+		}
+		// compare ignoring alpha
+		final String catalogId = homeMaterial.getTexture().getCatalogId() != null ? homeMaterial.getTexture().getCatalogId() : homeMaterial.getName();
+		System.out.println("MT homeMaterial id=" + catalogId + "<=> catalogTexture id=" + catalogTexture.getId());
+		if (catalogId == null || catalogTexture.getId() == null) {
+			return false;
+		}
+		return catalogId.equals(catalogTexture.getId());
+	}
+	
+	public static abstract class FunatureInspector {
+		
+		public abstract void process(HomePieceOfFurniture piece, HomeMaterial material);
+		
+		public void inspect(HomePieceOfFurniture piece) {
+			if (piece != null) {
+				if (piece instanceof HomeFurnitureGroup) {
+					// Recurse into the group
+					HomeFurnitureGroup group = (HomeFurnitureGroup) piece;
+					for (HomePieceOfFurniture member : group.getFurniture() ) {
+						inspect(member);
+					}
+				}
+				else { 
+					inspectMaterials(piece);
+				}
+				process(piece, null);
+			}
+		}
+
+		private void inspectMaterials(final HomePieceOfFurniture piece) {
+
+
+			// Make a new materials list copying the old one and replacing matching elements as we go
+			final HomeMaterial[] customMaterials = piece.getModelMaterials();
+			final HomeMaterial[] defaultMaterials = Util.loadDefaultMaterials(piece);
+			
+			if (customMaterials != null) {
+				for (int i = 0; i < customMaterials.length; i++) {
+					if (customMaterials[i] != null) {
+						process(piece, customMaterials[i]);
+					}
+				}
+			}
+			if (defaultMaterials != null) {
+				for (int i = 0; i < defaultMaterials.length; i++) {
+					if (defaultMaterials[i] != null) {
+						final HomeMaterial defaultMaterial = defaultMaterials[i];
+						boolean overridden = false;
+						if (customMaterials != null ) {
+							for (HomeMaterial customMaterial: customMaterials) {
+								if (customMaterial != null && customMaterial.getName() != null && customMaterial.getName().equals(defaultMaterial.getName())) {
+									overridden = true;
+									break;
+								}		
+							}
+						}
+						if (!overridden) {
+							process(piece, defaultMaterial);
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+	
+	
 }
 
