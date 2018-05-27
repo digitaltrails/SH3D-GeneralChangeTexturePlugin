@@ -296,12 +296,12 @@ public class TextureOps {
 	}
 	
 	private void findUsedTextures(final HomePieceOfFurniture piece, final Map<String, List<TextureUse>> usageMap) {
-		FunatureInspector funitureInspector = new FunatureInspector() {
+		FunitureInspector funitureInspector = new FunitureInspector() {
 			@Override
 			public void process(HomePieceOfFurniture piece, HomeMaterial material, boolean isDefaultMaterial) {
 				if (material != null) {
 					if (material.getTexture() != null) {
-						addToMappings(new TextureUse(getCatalogTexture(material), piece, material), usageMap);
+						addToMappings(new TextureUse(getCatalogTexture(material, isDefaultMaterial), piece, material), usageMap);
 					}
 				}
 				else {
@@ -327,7 +327,7 @@ public class TextureOps {
 		return catalogTexture;
 	}
 	
-	private CatalogTexture getCatalogTexture(HomeMaterial homeMaterial) {
+	private CatalogTexture getCatalogTexture(HomeMaterial homeMaterial, boolean isDefaultMaterial) {
 		
 		final HomeTexture homeTexture = homeMaterial.getTexture();
 		final String textureIdentifier = getIndentifier(homeTexture);
@@ -337,7 +337,7 @@ public class TextureOps {
 		}
 		else {
 			// Orphaned texture (no longer in catalog - probably a deleted user texture. 
-			final String nonCatalogIdentifier = getIndentifier(homeMaterial);
+			final String nonCatalogIdentifier = getIndentifier(homeMaterial, isDefaultMaterial);
 			catalogTexture = findNonCatalogTexture(nonCatalogIdentifier, homeTexture);
 		}
 		return catalogTexture;
@@ -360,11 +360,11 @@ public class TextureOps {
 		final int changedCount[] = {0} ;
 		final List<HomeMaterial> newMaterialsList =  new ArrayList<HomeMaterial>();//new HomeMaterial[oldMaterials != null ? oldMaterials.length : defaultMaterials.length];
 		
-		final FunatureInspector furnatureInspector = new FunatureInspector() {
+		final FunitureInspector furnatureInspector = new FunitureInspector() {
 			@Override
 			public void process(HomePieceOfFurniture piece, HomeMaterial material, boolean isDefaultMaterial) {
 				if (material != null) {
-					if (material.getTexture() != null && isMatchForTexture(material, from)) {
+					if (material.getTexture() != null && isMatchForTexture(material, from, isDefaultMaterial)) {
 						final HomeMaterial oldMaterial = material;	
 						final Float newShininess = shininess  != null ? shininess : oldMaterial.getShininess();
 						newMaterialsList.add(new HomeMaterial(oldMaterial.getName(), null, new HomeTexture(to), newShininess));
@@ -421,53 +421,45 @@ public class TextureOps {
 	
 	
 	public String getIndentifier(HomeTexture homeTexture) {
-		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
-			final String name = homeTexture.getName();
-			final String catalogId = homeTexture.getCatalogId();
-			return determineIdentifier(name, catalogId, null);	
-		}
-		return homeTexture.getCatalogId() != null ? homeTexture.getCatalogId() : homeTexture.getName();
+		final String name = homeTexture.getName();
+		final String catalogId = homeTexture.getCatalogId();
+		return determineIdentifier(name, catalogId, null, false);	
 	}
 
 	public String getIndentifier(CatalogTexture catalogTexture) {
-		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
-			final String name = catalogTexture.getName();
-			final String catalogId = catalogTexture.getId();
-			return determineIdentifier(name, catalogId, null);
-		}
-		return catalogTexture.getId() != null ? catalogTexture.getId() : catalogTexture.getName();
+		final String name = catalogTexture.getName();
+		final String catalogId = catalogTexture.getId();
+		return determineIdentifier(name, catalogId, null, false);
 	}
 
-	public String getIndentifier(HomeMaterial homeMaterial) {
+	public String getIndentifier(HomeMaterial homeMaterial, boolean isDefaultMaterial) {
 		if (homeMaterial.getTexture() == null) {
 			return null;
 		}
-		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
-			final String name = homeMaterial.getTexture().getName();
-			final String catalogId = homeMaterial.getTexture().getCatalogId();
-			return determineIdentifier(name, catalogId, homeMaterial.getName());
-			
-		}
-		return homeMaterial.getTexture().getCatalogId() != null ? homeMaterial.getTexture().getCatalogId() : homeMaterial.getName();
+		final String name = homeMaterial.getTexture().getName();
+		final String catalogId = homeMaterial.getTexture().getCatalogId();
+		return determineIdentifier(name, catalogId, homeMaterial.getName(), isDefaultMaterial);
 	}
 
-	public String determineIdentifier(final String name, final String catalogId, final String materialName) {
-		if (catalogId == null) {
+	public String determineIdentifier(final String name, final String catalogId, final String materialName, final boolean isDefaultMaterial) {
+		// Names are generally better for our purposes (global match and replace).
+		if (isDefaultMaterial) {
 			if (materialName != null) {
 				return materialName;
 			}
+			return name;
 		}
-		if (name == null) {
-			if (materialName != null) {
-				return materialName;
-			}
-			return catalogId;
+		if (name != null) {
+			return name;
 		}
-		return name;
+		if (materialName != null) {
+			return materialName;
+		}
+		return catalogId;
 	}
 	
 	
-	private boolean isMatchForTexture(HomeMaterial homeMaterial, CatalogTexture catalogTexture) {
+	private boolean isMatchForTexture(final HomeMaterial homeMaterial, final CatalogTexture catalogTexture, final boolean isDefaultMaterial) {
 		if (homeMaterial.getTexture() == null && catalogTexture == null) {
 			return false;
 		}
@@ -475,7 +467,7 @@ public class TextureOps {
 			return false;
 		}
 		// compare ignoring alpha
-		final String leftIdentifier = getIndentifier(homeMaterial);
+		final String leftIdentifier = getIndentifier(homeMaterial, isDefaultMaterial);
 		final String rightIdentifier = getIndentifier(catalogTexture);
 		System.out.println("MT homeMaterial idf=" + leftIdentifier + "<=> catalogTexture idf=" + rightIdentifier);
 		if (leftIdentifier == null || rightIdentifier == null) {
@@ -484,9 +476,7 @@ public class TextureOps {
 		return leftIdentifier.equals(rightIdentifier);
 	}
 	
-	
-	
-	public static abstract class FunatureInspector {
+	public static abstract class FunitureInspector {
 		
 		public abstract void process(HomePieceOfFurniture piece, HomeMaterial material, boolean isDefaultMaterial);
 		
