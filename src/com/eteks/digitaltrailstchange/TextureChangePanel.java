@@ -1,7 +1,7 @@
 /*
  * TextureChangePanel.java 19 Sept. 2015
  *
- * Sweet Home 3D, Copyright (c) 2015 Michael Hamilton / michael at actrix.gen.nz
+ * Copyright (c) 2015 Michael Hamilton / michael at actrix.gen.nz
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ public class TextureChangePanel extends JPanel {
 	private final ShininessSelectionPanel shininessSelectionPanel;
 	private final JButton ok;
 	private final JButton close;
+	private final JButton about;
 	private final JLabel status;
 
 	private boolean handling = false;
@@ -179,14 +180,16 @@ public class TextureChangePanel extends JPanel {
 		add(middlePanel, BorderLayout.CENTER);
 
 		final JPanel bottomPanel = new JPanel();
-		bottomPanel.setLayout(new GridLayout(1,3,30,0));
+		bottomPanel.setLayout(new GridLayout(1,4,30,0));
 		bottomPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 		ok = new JButton(Local.str("TextureChangePanel.ok"));
 		close = new JButton(Local.str("TextureChangePanel.close"));
 		status = new JLabel("");
+		about = new JButton(Local.str("TextureChangePanel.about"));
 		bottomPanel.add(ok);
 		bottomPanel.add(close);
 		bottomPanel.add(status);
+		bottomPanel.add(about);
 
 		add(bottomPanel, BorderLayout.PAGE_END);
 
@@ -304,6 +307,19 @@ public class TextureChangePanel extends JPanel {
 				((Window) comp).dispose();
 			}
 		});
+		
+		about.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JOptionPane.showMessageDialog(
+						TextureChangePanel.this, 
+						Local.str("TextureChangePanel.aboutMessage"), 
+						Local.str("TextureChangePanel.aboutTitle"), 
+						JOptionPane.INFORMATION_MESSAGE|JOptionPane.OK_OPTION);
+			}
+		});
+
 	}
 
 	private int changeTexture(

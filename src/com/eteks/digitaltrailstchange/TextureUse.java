@@ -1,7 +1,7 @@
 /*
  * TextureUse.java UndoRedoTextureChange.java 21 May 2017
  *
- * Sweet Home 3D, Copyright (c) 2015 Michael Hamilton / michael at actrix.gen.nz
+ * Copyright (c) 2015 Michael Hamilton / michael at actrix.gen.nz
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
