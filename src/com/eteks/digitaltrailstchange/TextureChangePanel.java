@@ -73,17 +73,22 @@ public class TextureChangePanel extends JPanel {
 				pluginContext.getUserPreferences(), 
 				new UndoRedoCallback() {
 					@Override
-					public void undo(TextureOps textureOps) {
-						textureOps.refresh();
-						if (selectingFromAll) {
-							fromSelectionPanel.setListData(textureOps.findAllCatalogTextures());
-							modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
-						}
-						else {
-							final List<CatalogTexture> texturesInUse = textureOps.findTexturesBeingUsed();
-							fromSelectionPanel.setListData(texturesInUse);
-							modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
-						}
+					public void undo(final TextureOps textureOps) {
+						SwingUtilities.invokeLater(new Runnable() {
+							@Override
+							public void run() {
+								textureOps.refresh();
+								if (selectingFromAll) {
+									fromSelectionPanel.setListData(textureOps.findAllCatalogTextures());
+									modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
+								}
+								else {
+									final List<CatalogTexture> texturesInUse = textureOps.findTexturesBeingUsed();
+									fromSelectionPanel.setListData(texturesInUse);
+									modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
+								}
+							}
+						});	
 					}
 
 					@Override
@@ -107,6 +112,7 @@ public class TextureChangePanel extends JPanel {
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {	
 						selectingFromAll = true;
+						textureOps.refresh();
 						fromSelectionPanel.setListData(textureOps.findAllCatalogTextures());
 						modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
 					}
@@ -119,6 +125,7 @@ public class TextureChangePanel extends JPanel {
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {
 						selectingFromAll = false;
+						textureOps.refresh();
 						final List<CatalogTexture> texturesInUse = textureOps.findTexturesBeingUsed();
 						fromSelectionPanel.setListData(texturesInUse);
 						modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());

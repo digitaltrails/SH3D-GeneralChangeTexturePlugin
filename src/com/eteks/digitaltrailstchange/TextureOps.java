@@ -216,10 +216,13 @@ public class TextureOps {
 	}
 	
 	private void refreshIndexes() {
+		
 		allTextures.clear();
+		catalogTexturesById.clear();
 		usageMap.clear();
 		reverseMap.clear();
 		texturesInUse.clear();
+		nonCatalogIndex.clear();
 		
 		for (TexturesCategory category : userPreferences.getTexturesCatalog().getCategories()) {
 			for (CatalogTexture ct : category.getTextures()) {
