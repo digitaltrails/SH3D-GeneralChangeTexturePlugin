@@ -20,6 +20,8 @@
 package com.eteks.digitaltrailstchange;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,7 @@ import com.eteks.sweethome3d.model.UserPreferences;
 import com.eteks.sweethome3d.model.Wall;
 
 public class TextureOps {
+	private static final boolean PRIORITIZE_NAME_AS_IDENTIFIER = true;
 	private final  Map<String, CatalogTexture> catalogTexturesById;
 	private final  Map<String, NonCatalogTexture> nonCatalogIndex;
 	
@@ -47,9 +50,9 @@ public class TextureOps {
 	private final  List<CatalogTexture> allTextures;
 	private final  Home home;
 	private final  UserPreferences userPreferences;
+	private final  UndoRedoCallback undoRedoCallback;
 	
-	public TextureOps(final Home home, final UserPreferences preferences) {
-
+	public TextureOps(final Home home, final UserPreferences preferences, final UndoRedoCallback callback) {
 		this.home = home;
 		userPreferences = preferences;
 		allTextures = new ArrayList<CatalogTexture>();
@@ -58,7 +61,12 @@ public class TextureOps {
 		usageMap = new HashMap<String, List<TextureUse>>();
 		reverseMap = new HashMap<Object, List<CatalogTexture>>();
 		texturesInUse = new ArrayList<CatalogTexture>();
+		undoRedoCallback = callback;
 		refreshIndexes();
+	}
+	
+	public UndoRedoCallback getUndoRedoCallback() {
+		return undoRedoCallback;
 	}
 
 	/**
@@ -75,7 +83,8 @@ public class TextureOps {
 	 * @return
 	 */
 	public List<TextureUse> findItemsUsingTexture(final CatalogTexture targetTexture) {
-		final List<TextureUse> result = usageMap.get(targetTexture.getId()); 
+		final String identifier = getIndentifier(targetTexture);
+		final List<TextureUse> result = usageMap.get(identifier); 
 		return result != null ? result : new ArrayList<TextureUse>(0);
 	}
 	
@@ -96,6 +105,19 @@ public class TextureOps {
 	 * @return list of textures being used in this home.
 	 */
 	public List<CatalogTexture> findTexturesBeingUsed() {
+		Collections.sort(texturesInUse, new Comparator<CatalogTexture>() {
+			@Override
+			public int compare(CatalogTexture o1, CatalogTexture o2) {
+				if (o1 != null && o2 != null) {
+					int result = (o1.getCategory() != null && o2.getCategory() != null) ? o1.getCategory().getName().compareToIgnoreCase(o2.getCategory().getName()) : 0;
+					if (result != 0) {
+						return result;
+					}
+					return getIndentifier(o1).compareToIgnoreCase(getIndentifier(o2));
+				}
+				return 0;
+			} 
+		});	
 		return texturesInUse;
 	}
 
@@ -121,7 +143,7 @@ public class TextureOps {
 	
 	public TextureChangeResult change(List<TextureUse> list, CatalogTexture from, CatalogTexture to, Float shininess) {
 		int count = 0;
-		UndoRedoTextureChange undoableEdit = new UndoRedoTextureChange();
+		UndoRedoTextureChange undoableEdit = new UndoRedoTextureChange(this);
 		for (TextureUse target: list) {
 			if (target.getRoom() != null) {
 				Room room = target.getRoom();
@@ -206,7 +228,7 @@ public class TextureOps {
 		}	
 		
 		for (CatalogTexture texture: allTextures) {
-			catalogTexturesById.put(texture.getId(), texture);	
+			catalogTexturesById.put(getIndentifier(texture), texture);	
 		}
 		
 		for (Room room: home.getRooms()) {
@@ -253,11 +275,12 @@ public class TextureOps {
 
 		
 		// Index catalogTexture -> model item name -> count of items with that item name
-		List<TextureUse> currentReferences = usageMap.get(catalogTexture.getId());
+		final String identifier = getIndentifier(catalogTexture);
+		List<TextureUse> currentReferences = usageMap.get(identifier);
 
 		if (currentReferences == null) {
 			currentReferences = new ArrayList<TextureUse>();
-			usageMap.put(catalogTexture.getId(), currentReferences);
+			usageMap.put(identifier, currentReferences);
 		}
 		currentReferences.add(textureUse);
 		
@@ -289,15 +312,14 @@ public class TextureOps {
 	}
 
 	private CatalogTexture getCatalogTexture(HomeTexture homeTexture) {
-		final String id = homeTexture.getCatalogId();
+		final String identifier = getIndentifier(homeTexture);
 		final CatalogTexture catalogTexture;
-		if (id != null && catalogTexturesById.containsKey(id)) {
-			catalogTexture = catalogTexturesById.get(id);
+		if (identifier != null && catalogTexturesById.containsKey(identifier)) {
+			catalogTexture = catalogTexturesById.get(identifier);
 		}
 		else {
 			// Orphaned texture (no longer in catalog - probably a deleted user texture. 
-			final String nonCatalogId = id != null ? id : homeTexture.getName();
-			catalogTexture = findNonCatalogTexture(nonCatalogId, homeTexture);
+			catalogTexture = findNonCatalogTexture(identifier, homeTexture);
 		}
 		return catalogTexture;
 	}
@@ -305,28 +327,28 @@ public class TextureOps {
 	private CatalogTexture getCatalogTexture(HomeMaterial homeMaterial) {
 		
 		final HomeTexture homeTexture = homeMaterial.getTexture();
-		final String textureId = homeTexture.getCatalogId();
+		final String textureIdentifier = getIndentifier(homeTexture);
 		final CatalogTexture catalogTexture;
-		if (textureId != null && catalogTexturesById.containsKey(textureId)) {
-			catalogTexture = catalogTexturesById.get(textureId);
+		if (textureIdentifier != null && catalogTexturesById.containsKey(textureIdentifier)) {
+			catalogTexture = catalogTexturesById.get(textureIdentifier);
 		}
 		else {
 			// Orphaned texture (no longer in catalog - probably a deleted user texture. 
-			final String nonCatalogId = homeMaterial.getName();
-			catalogTexture = findNonCatalogTexture(nonCatalogId, homeTexture);
+			final String nonCatalogIdentifier = getIndentifier(homeMaterial);
+			catalogTexture = findNonCatalogTexture(nonCatalogIdentifier, homeTexture);
 		}
 		return catalogTexture;
 	}
 
-	private NonCatalogTexture findNonCatalogTexture(final String id, final HomeTexture homeTexture) {
+	private NonCatalogTexture findNonCatalogTexture(final String identifier, final HomeTexture homeTexture) {
 		//final String key = homeTexture.getName() != null ? homeTexture.getName() : homeTexture.;
 		final NonCatalogTexture texture;
-		if (!nonCatalogIndex.containsKey(id)) {
-			texture = new NonCatalogTexture(id, homeTexture);
-			nonCatalogIndex.put(id, texture);
+		if (!nonCatalogIndex.containsKey(identifier)) {
+			texture = new NonCatalogTexture(identifier, homeTexture);
+			nonCatalogIndex.put(identifier, texture);
 		}
 		else {
-			texture = nonCatalogIndex.get(id);
+			texture = nonCatalogIndex.get(identifier);
 		}
 		return texture;
 	}
@@ -383,12 +405,43 @@ public class TextureOps {
 			return false;
 		}
 		// compare ignoring alpha 
-		final String homeTextureId = homeTexture.getCatalogId() != null ? homeTexture.getCatalogId() : homeTexture.getName();
-		System.out.println("HT homeTexture id=" + homeTextureId + "<=> catalogTexture id=" + catalogTexture.getId());
-		if (homeTextureId == null || catalogTexture.getId() == null) {
+		final String leftIdentifier = getIndentifier(homeTexture);
+		final String rightIdentifier = getIndentifier(catalogTexture);
+		System.out.println("HT homeTexture idf=" + leftIdentifier + "<=> catalogTexture idf=" + rightIdentifier);
+		if (leftIdentifier == null || rightIdentifier == null) {
 			return false;
 		}
-		return homeTextureId.equals(catalogTexture.getId());
+		return leftIdentifier.equals(rightIdentifier);
+	}
+
+	public String getIndentifier(HomeTexture homeTexture) {
+		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
+			return homeTexture.getName() != null ? homeTexture.getName() : homeTexture.getCatalogId();
+		}
+		return homeTexture.getCatalogId() != null ? homeTexture.getCatalogId() : homeTexture.getName();
+	}
+	
+	public String getIndentifier(CatalogTexture homeTexture) {
+		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
+			return homeTexture.getName() != null ? homeTexture.getName() : homeTexture.getId();
+		}
+		return homeTexture.getId() != null ? homeTexture.getId() : homeTexture.getName();
+	}
+
+	public String getIndentifier(HomeMaterial homeMaterial) {
+		if (homeMaterial.getTexture() == null) {
+			return null;
+		}
+		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
+			if (homeMaterial.getTexture().getName() != null) {
+				return homeMaterial.getTexture().getName();
+			}
+			if (homeMaterial.getTexture().getCatalogId() != null) {
+				return homeMaterial.getTexture().getCatalogId();
+			}
+			return homeMaterial.getName();
+		}
+		return homeMaterial.getTexture().getCatalogId() != null ? homeMaterial.getTexture().getCatalogId() : homeMaterial.getName();
 	}
 
 	private boolean isMatchForTexture(HomeMaterial homeMaterial, CatalogTexture catalogTexture) {
@@ -399,14 +452,16 @@ public class TextureOps {
 			return false;
 		}
 		// compare ignoring alpha
-		final String catalogId = homeMaterial.getTexture().getCatalogId() != null ? homeMaterial.getTexture().getCatalogId() : homeMaterial.getName();
-		System.out.println("MT homeMaterial id=" + catalogId + "<=> catalogTexture id=" + catalogTexture.getId());
-		if (catalogId == null || catalogTexture.getId() == null) {
+		final String leftIdentifier = getIndentifier(homeMaterial);
+		final String rightIdentifier = getIndentifier(catalogTexture);
+		System.out.println("MT homeMaterial idf=" + leftIdentifier + "<=> catalogTexture idf=" + rightIdentifier);
+		if (leftIdentifier == null || rightIdentifier == null) {
 			return false;
 		}
-		System.out.println("MT homeMaterial id=" + catalogId + "<=> catalogTexture id=" + catalogTexture.getId() + " " + catalogId.equals(catalogTexture.getId()));
-		return catalogId.equals(catalogTexture.getId());
+		return leftIdentifier.equals(rightIdentifier);
 	}
+	
+	
 	
 	public static abstract class FunatureInspector {
 		

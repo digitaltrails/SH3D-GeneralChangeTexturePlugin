@@ -52,6 +52,8 @@ public class TextureChangePanel extends JPanel {
 	private final JLabel status;
 
 	private boolean handling = false;
+	
+	private boolean selectingFromAll = true;
 
 	private final TextureOps textureOps;
 
@@ -66,10 +68,33 @@ public class TextureChangePanel extends JPanel {
 		// Show all textures used by all furniture in use.
 		// final List<CatalogTexture> texturesInUse = new TextureMatcher(catalogTextureList).findUsedBy(furnitureList);
 		
-		textureOps = new TextureOps(pluginContext.getHome(), pluginContext.getUserPreferences());
+		textureOps = new TextureOps(
+				pluginContext.getHome(), 
+				pluginContext.getUserPreferences(), 
+				new UndoRedoCallback() {
+					@Override
+					public void undo(TextureOps textureOps) {
+						textureOps.refresh();
+						if (selectingFromAll) {
+							fromSelectionPanel.setListData(textureOps.findAllCatalogTextures());
+							modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
+						}
+						else {
+							final List<CatalogTexture> texturesInUse = textureOps.findTexturesBeingUsed();
+							fromSelectionPanel.setListData(texturesInUse);
+							modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
+						}
+					}
+
+					@Override
+					public void redo(TextureOps textureOps) {
+						undo(textureOps); // Same as undo
+					}
+				});
 		
 		fromSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.fromTexture"));
 		fromSelectionPanel.setListData(textureOps.findTexturesBeingUsed());
+		selectingFromAll = false;
 		toSelectionPanel = new TextureSelectionPanel(Local.str("TextureChangePanel.toTextureTo"));
 		toSelectionPanel.setListData(textureOps.findAllCatalogTextures());
 				
@@ -81,6 +106,7 @@ public class TextureChangePanel extends JPanel {
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {	
+						selectingFromAll = true;
 						fromSelectionPanel.setListData(textureOps.findAllCatalogTextures());
 						modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
 					}
@@ -92,6 +118,7 @@ public class TextureChangePanel extends JPanel {
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
 					public void actionPerformed(final String actionName, final CatalogTexture list) {
+						selectingFromAll = false;
 						final List<CatalogTexture> texturesInUse = textureOps.findTexturesBeingUsed();
 						fromSelectionPanel.setListData(texturesInUse);
 						modelItemSelectionPanel.setListData(new ArrayList<TextureUse>());
@@ -103,7 +130,7 @@ public class TextureChangePanel extends JPanel {
 				Local.str("TextureSelectionPanel.popup.showAllLabel"), 
 				new TextureSelectionPanel.TextureSelectionAction() {						
 					@Override
-					public void actionPerformed(final String actionName, final CatalogTexture list) {					
+					public void actionPerformed(final String actionName, final CatalogTexture list) {	
 						toSelectionPanel.setListData(textureOps.findAllCatalogTextures());
 					}
 				});
