@@ -417,18 +417,25 @@ public class TextureOps {
 		return leftIdentifier.equals(rightIdentifier);
 	}
 
+	private final Map<String, String> nameIdMap = new HashMap<String, String>();
+	
+	
 	public String getIndentifier(HomeTexture homeTexture) {
 		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
-			return homeTexture.getName() != null ? homeTexture.getName() : homeTexture.getCatalogId();
+			final String name = homeTexture.getName();
+			final String catalogId = homeTexture.getCatalogId();
+			return determineIdentifier(name, catalogId, null);	
 		}
 		return homeTexture.getCatalogId() != null ? homeTexture.getCatalogId() : homeTexture.getName();
 	}
-	
-	public String getIndentifier(CatalogTexture homeTexture) {
+
+	public String getIndentifier(CatalogTexture catalogTexture) {
 		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
-			return homeTexture.getName() != null ? homeTexture.getName() : homeTexture.getId();
+			final String name = catalogTexture.getName();
+			final String catalogId = catalogTexture.getId();
+			return determineIdentifier(name, catalogId, null);
 		}
-		return homeTexture.getId() != null ? homeTexture.getId() : homeTexture.getName();
+		return catalogTexture.getId() != null ? catalogTexture.getId() : catalogTexture.getName();
 	}
 
 	public String getIndentifier(HomeMaterial homeMaterial) {
@@ -436,17 +443,30 @@ public class TextureOps {
 			return null;
 		}
 		if (PRIORITIZE_NAME_AS_IDENTIFIER) {
-			if (homeMaterial.getTexture().getName() != null) {
-				return homeMaterial.getTexture().getName();
-			}
-			if (homeMaterial.getTexture().getCatalogId() != null) {
-				return homeMaterial.getTexture().getCatalogId();
-			}
-			return homeMaterial.getName();
+			final String name = homeMaterial.getTexture().getName();
+			final String catalogId = homeMaterial.getTexture().getCatalogId();
+			return determineIdentifier(name, catalogId, homeMaterial.getName());
+			
 		}
 		return homeMaterial.getTexture().getCatalogId() != null ? homeMaterial.getTexture().getCatalogId() : homeMaterial.getName();
 	}
 
+	public String determineIdentifier(final String name, final String catalogId, final String materialName) {
+		if (catalogId == null) {
+			if (materialName != null) {
+				return materialName;
+			}
+		}
+		if (name == null) {
+			if (materialName != null) {
+				return materialName;
+			}
+			return catalogId;
+		}
+		return name;
+	}
+	
+	
 	private boolean isMatchForTexture(HomeMaterial homeMaterial, CatalogTexture catalogTexture) {
 		if (homeMaterial.getTexture() == null && catalogTexture == null) {
 			return false;
