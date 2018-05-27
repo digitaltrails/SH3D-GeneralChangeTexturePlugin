@@ -59,19 +59,15 @@ public final class UndoRedoTextureChange extends AbstractUndoableEdit {
 			@Override
 			public void undo() {
 				room.setFloorTexture(getOldTexture());
-				if (getOldShininess() != null) {
-					if (getOldShininess() != null) { 
-						room.setFloorShininess(getOldShininess()); 
-					}
+				if (getOldShininess() != null) { 
+					room.setFloorShininess(getOldShininess()); 
 				}
 			}
 			@Override
 			public void redo() {
 				room.setFloorTexture(getNewTexture());
 				if (getNewShininess() != null) {
-					if (getNewShininess() != null) {
-						room.setFloorShininess(getNewShininess());
-					}
+					room.setFloorShininess(getNewShininess());
 				}
 			}} );
 	}
@@ -168,12 +164,16 @@ public final class UndoRedoTextureChange extends AbstractUndoableEdit {
 			@Override
 			public void undo() {
 				piece.setTexture(getOldTexture());
-				if (getOldShininess() != null) { 				piece.setShininess(getOldShininess()); }
+				if (getOldShininess() != null) {
+					piece.setShininess(getOldShininess()); 
+				}
 			}
 			@Override
 			public void redo() {
 				piece.setTexture(getNewTexture());
-				if (getNewShininess() != null) { 				piece.setShininess(getNewShininess()); }
+				if (getNewShininess() != null) { 	
+					piece.setShininess(getNewShininess()); 
+				}
 			}} );
 	}
 
