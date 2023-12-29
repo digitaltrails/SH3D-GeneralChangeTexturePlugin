@@ -31,7 +31,7 @@ public class ChangeTextureAction extends PluginAction {
 	public ChangeTextureAction(GeneralChangeTexturePlugin context) {
 		this.context = context;
 		putPropertyValue(Property.NAME, Local.str("ChangeTextureAction.pluginName"));
-		putPropertyValue(Property.MENU, "Tools");
+		putPropertyValue(Property.MENU, Local.str("ChangeTextureAction.targetMenu"));
 		setEnabled(true);
 	}
 
