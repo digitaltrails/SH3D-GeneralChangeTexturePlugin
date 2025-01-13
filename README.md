@@ -3,7 +3,7 @@
 ## GeneralChangeTexturePlugin for SweetHome3D: find/change textures in use
 
 The General Change Texture plugin changes one texture to another by traversing all furniture, 
-furnature materials, wall sides, room ceilings, room floors, and room baseboards. 
+furniture materials, wall sides, room ceilings, room floors, and room baseboards. 
 The plugin can find and change catalog and non-catalog textures (non-catalog textures are 
 most likely furniture default materials).
 
